@@ -237,6 +237,63 @@
   }
   .legend strong { color: #ff5722; }
 
+  /* ===== CLEF SELECTION ===== */
+  .clef-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 12px 0 4px;
+    width: 100%;
+    max-width: 320px;
+  }
+  .clef-btn {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 18px;
+    background: linear-gradient(180deg, #ffb74d, #f57c00);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 16px;
+    font-family: inherit;
+    font-weight: bold;
+    font-size: clamp(15px, 4.5vw, 19px);
+    cursor: pointer;
+    box-shadow: 0 5px 0 rgba(0,0,0,0.2), 0 6px 12px rgba(0,0,0,0.1);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.25);
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  .clef-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.2), 0 3px 6px rgba(0,0,0,0.1);
+  }
+  .clef-btn[data-clef="fa"]  { background: linear-gradient(180deg, #4fc3f7, #0277bd); }
+  .clef-btn[data-clef="do"]  { background: linear-gradient(180deg, #ba68c8, #6a1b9a); }
+  .clef-symbol {
+    font-size: clamp(34px, 9vw, 44px);
+    font-family: 'Bravura Text', 'Noto Music', 'Apple Symbols', serif;
+    line-height: 1;
+    min-width: 38px;
+    text-align: center;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.18);
+  }
+  .clef-name { flex: 1; text-align: left; }
+
+  .end-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 14px;
+  }
+  .play-btn-secondary {
+    background: linear-gradient(180deg, #78909c, #455a64);
+    font-size: clamp(13px, 4vw, 17px);
+    padding: 12px 24px;
+    margin-top: 0;
+  }
+
   .mascot {
     font-size: clamp(44px, 14vw, 70px);
     margin-bottom: 6px;
@@ -299,9 +356,21 @@
   <div class="screen" id="startScreen">
     <div class="mascot">🎻</div>
     <h1>Aventura das Notas</h1>
-    <h2>Aprenda a ler partitura!</h2>
-    <p>As notas vão aparecer no pentagrama.<br>
-    Toque o botão da nota certa <strong>antes</strong> dela sair da tela!</p>
+    <h2>Escolha a clave!</h2>
+    <div class="clef-options">
+      <button class="clef-btn" data-clef="sol">
+        <span class="clef-symbol">𝄞</span>
+        <span class="clef-name">Clave de Sol</span>
+      </button>
+      <button class="clef-btn" data-clef="fa">
+        <span class="clef-symbol">𝄢</span>
+        <span class="clef-name">Clave de Fá</span>
+      </button>
+      <button class="clef-btn" data-clef="do">
+        <span class="clef-symbol">𝄡</span>
+        <span class="clef-name">Clave de Dó</span>
+      </button>
+    </div>
     <div class="legend">
       <strong>Como jogar:</strong><br>
       🎵 Veja a nota chegar pela direita<br>
@@ -309,7 +378,6 @@
       ⚡ A velocidade aumenta conforme você acerta<br>
       ❤ Você tem 3 vidas — não erre demais!
     </div>
-    <button class="play-btn" id="startBtn">Começar! 🎶</button>
   </div>
 
   <!-- GAME OVER SCREEN -->
@@ -318,586 +386,15 @@
     <h1 id="endTitle">Parabéns!</h1>
     <p id="endMessage">Você foi muito bem!</p>
     <div class="big-score" id="finalScore">0</div>
-    <p>Nível alcançado: <strong id="finalLevel">1</strong></p>
-    <button class="play-btn" id="restartBtn">Jogar de novo 🔄</button>
+    <p>Nível alcançado: <strong id="finalLevel">1</strong> · Clave: <strong id="finalClef">Sol</strong></p>
+    <div class="end-buttons">
+      <button class="play-btn play-btn-secondary" id="changeClefBtn">Trocar clave 🎼</button>
+      <button class="play-btn" id="restartBtn">Jogar de novo 🔄</button>
+    </div>
   </div>
 
 </div>
 
-<script>
-'use strict';
-
-// ===== CONFIG =====
-const NOTES = [
-  { id: 'C4', button: 'do',  label: 'Dó',  freq: 261.63, step: 10 }, // 1 ledger below
-  { id: 'D4', button: 're',  label: 'Ré',  freq: 293.66, step: 9 },
-  { id: 'E4', button: 'mi',  label: 'Mi',  freq: 329.63, step: 8 },
-  { id: 'F4', button: 'fa',  label: 'Fá',  freq: 349.23, step: 7 },
-  { id: 'G4', button: 'sol', label: 'Sol', freq: 392.00, step: 6 },
-  { id: 'A4', button: 'la',  label: 'Lá',  freq: 440.00, step: 5 },
-  { id: 'B4', button: 'si',  label: 'Si',  freq: 493.88, step: 4 },
-  { id: 'C5', button: 'do',  label: 'Dó',  freq: 523.25, step: 3 },
-  { id: 'D5', button: 're',  label: 'Ré',  freq: 587.33, step: 2 },
-  { id: 'E5', button: 'mi',  label: 'Mi',  freq: 659.25, step: 1 },
-  { id: 'F5', button: 'fa',  label: 'Fá',  freq: 698.46, step: 0 }
-];
-// step = number of half-line spaces above the top staff line.
-// Each step = half-line distance.
-
-// ===== AUDIO =====
-let audioCtx = null;
-let muted = false;
-
-function getAudioCtx() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  return audioCtx;
-}
-
-function playNote(freq, duration = 0.6) {
-  if (muted) return;
-  try {
-    const ctx = getAudioCtx();
-    const now = ctx.currentTime;
-
-    // Violin-ish sound: triangle + sawtooth with vibrato and ADSR envelope
-    const osc1 = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
-    const gain = ctx.createGain();
-    const filter = ctx.createBiquadFilter();
-    const vibrato = ctx.createOscillator();
-    const vibratoGain = ctx.createGain();
-
-    osc1.type = 'sawtooth';
-    osc2.type = 'triangle';
-    osc1.frequency.value = freq;
-    osc2.frequency.value = freq;
-
-    // Vibrato
-    vibrato.frequency.value = 5;
-    vibratoGain.gain.value = freq * 0.005;
-    vibrato.connect(vibratoGain);
-    vibratoGain.connect(osc1.frequency);
-    vibratoGain.connect(osc2.frequency);
-
-    filter.type = 'lowpass';
-    filter.frequency.value = freq * 4;
-    filter.Q.value = 1;
-
-    osc1.connect(filter);
-    osc2.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
-
-    // Envelope
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.18, now + 0.06);
-    gain.gain.linearRampToValueAtTime(0.14, now + 0.15);
-    gain.gain.linearRampToValueAtTime(0, now + duration);
-
-    osc1.start(now);
-    osc2.start(now);
-    vibrato.start(now);
-    osc1.stop(now + duration);
-    osc2.stop(now + duration);
-    vibrato.stop(now + duration);
-  } catch (e) { console.warn(e); }
-}
-
-function playFx(type) {
-  if (muted) return;
-  try {
-    const ctx = getAudioCtx();
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    if (type === 'correct') {
-      // Cheerful arpeggio up
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(523.25, now);
-      osc.frequency.setValueAtTime(659.25, now + 0.08);
-      osc.frequency.setValueAtTime(783.99, now + 0.16);
-      gain.gain.setValueAtTime(0.0, now);
-      gain.gain.linearRampToValueAtTime(0.2, now + 0.02);
-      gain.gain.linearRampToValueAtTime(0, now + 0.3);
-      osc.start(now);
-      osc.stop(now + 0.3);
-    } else {
-      // Gentle "oops" descent
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(330, now);
-      osc.frequency.exponentialRampToValueAtTime(180, now + 0.3);
-      gain.gain.setValueAtTime(0.0, now);
-      gain.gain.linearRampToValueAtTime(0.18, now + 0.02);
-      gain.gain.linearRampToValueAtTime(0, now + 0.35);
-      osc.start(now);
-      osc.stop(now + 0.35);
-    }
-  } catch (e) { console.warn(e); }
-}
-
-// ===== CANVAS / DRAWING =====
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-let W = 0, H = 0, dpr = 1;
-
-function resizeCanvas() {
-  const rect = canvas.getBoundingClientRect();
-  dpr = window.devicePixelRatio || 1;
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  W = rect.width;
-  H = rect.height;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-}
-
-// Layout helpers (computed each frame from current canvas size)
-function getLayout() {
-  const lineSpacing = Math.min(22, H / 12); // distance between staff lines
-  const staffHeight = lineSpacing * 4;
-  const staffTop = (H - staffHeight) / 2 - lineSpacing * 0.5; // shift up a tiny bit
-  return {
-    lineSpacing,
-    staffTop,
-    staffBottom: staffTop + staffHeight,
-    clefX: 14,
-    clefWidth: 50,
-    hitX: 90,        // x position where note must be tapped
-    spawnX: W + 30,  // x where notes appear
-    despawnX: -40    // x where notes disappear (past clef)
-  };
-}
-
-// y coordinate of a note based on its 'step' (steps above F5 line)
-function noteY(step, layout) {
-  // step 0 = on top line (F5). Each step = lineSpacing/2 downward.
-  return layout.staffTop + (step * layout.lineSpacing / 2);
-}
-
-function drawTrebleClef(x, yCenter, h) {
-  // Use Unicode treble clef glyph; scale to fit
-  ctx.save();
-  ctx.fillStyle = '#3e2723';
-  ctx.font = `${h * 1.6}px "Bravura Text", "Noto Music", "Apple Symbols", serif`;
-  ctx.textBaseline = 'middle';
-  ctx.textAlign = 'left';
-  ctx.fillText('𝄞', x, yCenter + h * 0.05);
-  ctx.restore();
-}
-
-function drawStaff(layout) {
-  ctx.save();
-  ctx.strokeStyle = '#5d4037';
-  ctx.lineWidth = 1.5;
-  ctx.lineCap = 'round';
-  for (let i = 0; i < 5; i++) {
-    const y = layout.staffTop + i * layout.lineSpacing;
-    ctx.beginPath();
-    ctx.moveTo(8, y);
-    ctx.lineTo(W - 8, y);
-    ctx.stroke();
-  }
-
-  // Treble clef
-  const clefCenterY = layout.staffTop + layout.lineSpacing * 3; // G4 line (4th from top)
-  drawTrebleClef(layout.clefX, clefCenterY, layout.lineSpacing * 4);
-
-  // Hit zone vertical band
-  const grad = ctx.createLinearGradient(layout.hitX - 22, 0, layout.hitX + 22, 0);
-  grad.addColorStop(0, 'rgba(255, 193, 7, 0)');
-  grad.addColorStop(0.5, 'rgba(255, 193, 7, 0.35)');
-  grad.addColorStop(1, 'rgba(255, 193, 7, 0)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(layout.hitX - 22, layout.staffTop - 30, 44, layout.lineSpacing * 4 + 60);
-
-  // Hit zone center line
-  ctx.strokeStyle = 'rgba(255, 152, 0, 0.6)';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([6, 4]);
-  ctx.beginPath();
-  ctx.moveTo(layout.hitX, layout.staffTop - 35);
-  ctx.lineTo(layout.hitX, layout.staffTop + layout.lineSpacing * 4 + 35);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  ctx.restore();
-}
-
-function drawNote(note, layout) {
-  const y = noteY(note.step, layout);
-  const x = note.x;
-  const ls = layout.lineSpacing;
-  const headW = ls * 0.9;
-  const headH = ls * 0.7;
-
-  ctx.save();
-
-  // Ledger line for C4 (step 10) - 1 line below staff
-  if (note.step >= 10) {
-    ctx.strokeStyle = '#5d4037';
-    ctx.lineWidth = 1.8;
-    ctx.beginPath();
-    ctx.moveTo(x - headW * 0.8, y);
-    ctx.lineTo(x + headW * 0.8, y);
-    ctx.stroke();
-  }
-
-  // Stem (down for top half, up for bottom half)
-  const stemDown = note.step <= 4; // Above middle line goes stem down
-  ctx.strokeStyle = '#3e2723';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  if (stemDown) {
-    ctx.moveTo(x - headW * 0.42, y);
-    ctx.lineTo(x - headW * 0.42, y + ls * 3.2);
-  } else {
-    ctx.moveTo(x + headW * 0.42, y);
-    ctx.lineTo(x + headW * 0.42, y - ls * 3.2);
-  }
-  ctx.stroke();
-
-  // Note head (oval, slightly tilted)
-  ctx.fillStyle = note.flash ? '#ff5722' : '#3e2723';
-  ctx.beginPath();
-  ctx.ellipse(x, y, headW / 2, headH / 2, -0.35, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Highlight ring when in hit zone
-  if (note.inHitZone) {
-    ctx.strokeStyle = 'rgba(255, 193, 7, 0.9)';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.ellipse(x, y, headW / 2 + 4, headH / 2 + 4, -0.35, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-
-  ctx.restore();
-}
-
-// ===== GAME STATE =====
-const state = {
-  running: false,
-  score: 0,
-  lives: 3,
-  level: 1,
-  notes: [],         // active notes on staff
-  speed: 90,         // pixels/sec, base
-  spawnInterval: 2400, // ms between spawns
-  lastSpawnTime: 0,
-  lastTime: 0,
-  consecutiveCorrect: 0,
-  notesPlayed: 0
-};
-
-function pickNextNote() {
-  // Slight bias toward staff notes for beginners; full range still possible
-  const staffOnly = state.level <= 2;
-  const pool = staffOnly
-    ? NOTES.filter(n => n.step >= 0 && n.step <= 8) // E4 to F5
-    : NOTES;
-  // Avoid repeating the exact same note twice in a row when possible
-  const last = state.notes.length > 0 ? state.notes[state.notes.length - 1] : null;
-  let pick;
-  let attempts = 0;
-  do {
-    pick = pool[Math.floor(Math.random() * pool.length)];
-    attempts++;
-  } while (last && pick.id === last.id && attempts < 4);
-  return pick;
-}
-
-function spawnNote() {
-  const layout = getLayout();
-  const def = pickNextNote();
-  const note = {
-    id: def.id,
-    button: def.button,
-    label: def.label,
-    freq: def.freq,
-    step: def.step,
-    x: layout.spawnX,
-    flash: false,
-    inHitZone: false,
-    answered: false,
-    soundPlayed: false
-  };
-  state.notes.push(note);
-  state.notesPlayed++;
-}
-
-function updateGame(dt) {
-  const layout = getLayout();
-  const speed = state.speed * (1 + (state.level - 1) * 0.15);
-
-  // Spawn logic
-  state.lastSpawnTime += dt;
-  if (state.lastSpawnTime >= state.spawnInterval) {
-    spawnNote();
-    state.lastSpawnTime = 0;
-  }
-
-  // Update notes
-  for (let i = state.notes.length - 1; i >= 0; i--) {
-    const n = state.notes[i];
-    n.x -= speed * dt / 1000;
-
-    // Trigger sound when note enters visible area meaningfully
-    if (!n.soundPlayed && n.x < W * 0.85) {
-      playNote(n.freq, 0.5);
-      n.soundPlayed = true;
-    }
-
-    // Mark in hit zone
-    n.inHitZone = Math.abs(n.x - layout.hitX) < 30;
-
-    // Note passed without answer
-    if (!n.answered && n.x < layout.hitX - 35) {
-      handleMiss(n);
-      n.answered = true;
-    }
-
-    // Remove off-screen
-    if (n.x < layout.despawnX) {
-      state.notes.splice(i, 1);
-    }
-  }
-
-  // Level progression: every 5 correct in a row OR every 10 total correct
-  const targetLevel = 1 + Math.floor(state.score / 8);
-  if (targetLevel > state.level) {
-    state.level = targetLevel;
-    document.getElementById('level').textContent = state.level;
-    // Speed up spawn rate as well (down to a floor)
-    state.spawnInterval = Math.max(900, 2400 - (state.level - 1) * 150);
-  }
-}
-
-function render() {
-  ctx.clearRect(0, 0, W, H);
-  const layout = getLayout();
-  drawStaff(layout);
-  for (const n of state.notes) {
-    drawNote(n, layout);
-  }
-}
-
-let rafId = null;
-function gameLoop(t) {
-  if (!state.running) return;
-  if (!state.lastTime) state.lastTime = t;
-  const dt = Math.min(50, t - state.lastTime);
-  state.lastTime = t;
-  updateGame(dt);
-  render();
-  rafId = requestAnimationFrame(gameLoop);
-}
-
-// ===== INPUT / ANSWER HANDLING =====
-function handleAnswer(buttonId) {
-  if (!state.running) return;
-  const layout = getLayout();
-  // Find the note closest to the hit zone (not yet answered)
-  let target = null;
-  let bestDist = Infinity;
-  for (const n of state.notes) {
-    if (n.answered) continue;
-    const d = Math.abs(n.x - layout.hitX);
-    // Only consider notes that haven't yet passed the hit zone too far
-    if (n.x > layout.hitX - 35 && d < bestDist) {
-      bestDist = d;
-      target = n;
-    }
-  }
-  if (!target) {
-    // No note available — small penalty? Just gentle wrong fx
-    flashFeedback('wrong', '¡Espera!');
-    return;
-  }
-
-  const correct = target.button === buttonId;
-  target.answered = true;
-
-  if (correct) {
-    state.score++;
-    state.consecutiveCorrect++;
-    document.getElementById('score').textContent = state.score;
-    flashFeedback('correct', randomCheer());
-    target.flash = true;
-    playFx('correct');
-    // Remove note after a short delay so the flash shows
-    setTimeout(() => {
-      const idx = state.notes.indexOf(target);
-      if (idx >= 0) state.notes.splice(idx, 1);
-    }, 120);
-  } else {
-    state.consecutiveCorrect = 0;
-    loseLife();
-    flashFeedback('wrong', `Era ${target.label}!`);
-    playFx('wrong');
-    setTimeout(() => {
-      const idx = state.notes.indexOf(target);
-      if (idx >= 0) state.notes.splice(idx, 1);
-    }, 200);
-  }
-}
-
-function handleMiss(note) {
-  state.consecutiveCorrect = 0;
-  loseLife();
-  flashFeedback('wrong', `Era ${note.label}!`);
-  playFx('wrong');
-}
-
-function loseLife() {
-  state.lives--;
-  updateHearts();
-  if (state.lives <= 0) {
-    endGame();
-  }
-}
-
-function updateHearts() {
-  let html = '';
-  for (let i = 0; i < 3; i++) {
-    if (i < state.lives) html += '❤';
-    else html += '<span class="heart-empty">❤</span>';
-  }
-  document.getElementById('hearts').innerHTML = html;
-}
-
-const cheers = ['Perfeito!', 'Mandou bem!', 'Show!', 'Isso!', 'Boa!', '🎵', 'Acertou!', 'Lindo!'];
-function randomCheer() {
-  return cheers[Math.floor(Math.random() * cheers.length)];
-}
-
-const flashEl = document.getElementById('flash');
-const feedbackTextEl = document.getElementById('feedbackText');
-let flashTimeout = null;
-function flashFeedback(type, text) {
-  flashEl.className = 'feedback-flash ' + type;
-  feedbackTextEl.className = 'feedback-text ' + type + ' show';
-  feedbackTextEl.textContent = text;
-  clearTimeout(flashTimeout);
-  flashTimeout = setTimeout(() => {
-    flashEl.className = 'feedback-flash';
-    feedbackTextEl.className = 'feedback-text ' + type;
-  }, 500);
-}
-
-// ===== GAME LIFECYCLE =====
-function startGame() {
-  document.getElementById('startScreen').classList.add('hidden');
-  document.getElementById('endScreen').classList.add('hidden');
-  document.getElementById('header').style.display = 'flex';
-  document.getElementById('staffArea').style.display = 'flex';
-  document.getElementById('buttons').style.display = 'grid';
-
-  // Reset state
-  state.running = true;
-  state.score = 0;
-  state.lives = 3;
-  state.level = 1;
-  state.notes = [];
-  state.lastSpawnTime = 1500; // first note appears quickly
-  state.lastTime = 0;
-  state.consecutiveCorrect = 0;
-  state.notesPlayed = 0;
-  state.spawnInterval = 2400;
-
-  document.getElementById('score').textContent = '0';
-  document.getElementById('level').textContent = '1';
-  updateHearts();
-
-  // Initialize audio context with user gesture
-  getAudioCtx();
-
-  setTimeout(resizeCanvas, 50);
-  rafId = requestAnimationFrame(gameLoop);
-}
-
-function endGame() {
-  state.running = false;
-  if (rafId) cancelAnimationFrame(rafId);
-  state.notes = [];
-
-  document.getElementById('finalScore').textContent = state.score;
-  document.getElementById('finalLevel').textContent = state.level;
-
-  let title, msg, mascot;
-  if (state.score >= 30) {
-    title = 'Incrível! 🌟';
-    msg = 'Você é um(a) grande músico(a)!';
-    mascot = '🏆';
-  } else if (state.score >= 15) {
-    title = 'Muito bom!';
-    msg = 'Você está aprendendo rápido!';
-    mascot = '🎉';
-  } else if (state.score >= 5) {
-    title = 'Boa tentativa!';
-    msg = 'Pratique mais um pouco e melhore sua pontuação!';
-    mascot = '🎻';
-  } else {
-    title = 'Tente de novo!';
-    msg = 'A prática leva à perfeição. Você consegue!';
-    mascot = '💪';
-  }
-  document.getElementById('endTitle').textContent = title;
-  document.getElementById('endMessage').textContent = msg;
-  document.getElementById('endMascot').textContent = mascot;
-
-  setTimeout(() => {
-    document.getElementById('endScreen').classList.remove('hidden');
-  }, 600);
-}
-
-// ===== EVENT LISTENERS =====
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', startGame);
-
-document.querySelectorAll('.note-btn').forEach(btn => {
-  const handler = (e) => {
-    e.preventDefault();
-    const note = btn.dataset.note;
-    handleAnswer(note);
-  };
-  btn.addEventListener('touchstart', handler, { passive: false });
-  btn.addEventListener('mousedown', handler);
-});
-
-document.getElementById('muteBtn').addEventListener('click', () => {
-  muted = !muted;
-  document.getElementById('muteBtn').textContent = muted ? '🔇' : '🔊';
-});
-
-// Fallback for older browsers without 100dvh: keep --vh updated as the URL bar shows/hides
-function setRealVH() {
-  const vh = window.innerHeight * 0.01;
-  document.documentElement.style.setProperty('--vh', vh + 'px');
-  resizeCanvas();
-}
-window.addEventListener('resize', setRealVH);
-window.addEventListener('orientationchange', () => setTimeout(setRealVH, 150));
-if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', setRealVH);
-}
-setRealVH();
-
-// Prevent pinch zoom and double-tap zoom on iOS
-document.addEventListener('gesturestart', e => e.preventDefault());
-let lastTouchEnd = 0;
-document.addEventListener('touchend', e => {
-  const now = Date.now();
-  if (now - lastTouchEnd <= 300) e.preventDefault();
-  lastTouchEnd = now;
-}, false);
-
-// Initial canvas size
-setTimeout(resizeCanvas, 50);
-</script>
+<script src="game.js"></script>
 </body>
 </html>
