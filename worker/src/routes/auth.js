@@ -269,7 +269,7 @@ export default [
       if (tipo === 'dispositivo') {
         const jogadores = await todos(
           c.db,
-          `select id, apelido, avatar, criado_em from jogadores
+          `select id, apelido, avatar, instrumento, criado_em from jogadores
            where dispositivo_id = ? and conta_id is null order by criado_em`,
           id
         );
@@ -280,7 +280,7 @@ export default [
         primeiro(c.db, 'select id, email, nome, criado_em from contas where id = ?', id),
         todos(
           c.db,
-          `select id, apelido, avatar, criado_em from jogadores
+          `select id, apelido, avatar, instrumento, criado_em from jogadores
            where conta_id = ? order by criado_em`,
           id
         ),

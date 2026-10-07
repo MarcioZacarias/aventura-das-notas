@@ -420,17 +420,54 @@ const Api = (() => {
   const jogadorAtual = () => ler(K.jogador);
 
   /** Renomeia o perfil / troca o avatar. */
-  async function atualizarJogador({ apelido, avatar }) {
+  async function atualizarJogador({ apelido, avatar, instrumento }) {
     const id = await garantirJogador();
     const corpo = {};
     if (apelido !== undefined) corpo.apelido = apelido;
     if (avatar !== undefined) corpo.avatar = avatar;
+    if (instrumento !== undefined) corpo.instrumento = instrumento;
 
     const r = await autenticado('PATCH', `/v1/jogadores/${id}`, corpo);
     if (!r.ok) return { ok: false, erro: r.dados?.erro || `Falha (${r.status})` };
     gravar(K.jogador, r.dados.jogador);
     return { ok: true, jogador: r.dados.jogador };
   }
+
+  /**
+   * Instrumento do perfil atual. Grava no perfil local na hora (a tela usa
+   * isso imediatamente, mesmo offline) e depois tenta subir para o servidor.
+   */
+  async function definirInstrumento(instrumento) {
+    const local = ler(K.jogador);
+    if (local?.id) gravar(K.jogador, { ...local, instrumento });
+    if (exigeLoginSemSessao()) return { ok: false, erro: 'sem sessao' };
+    return atualizarJogador({ instrumento });
+  }
+
+  /**
+   * Atualiza o perfil local com o do servidor (o instrumento pode ter sido
+   * escolhido em outro aparelho). Uma escolha feita offline que ainda nao
+   * subiu nao e apagada: ela sobe agora.
+   */
+  async function carregarPerfil() {
+    if (!estado.ligado || exigeLoginSemSessao()) return jogadorAtual();
+    const id = await garantirJogador();
+    const lista = await listarJogadores();
+    const doServidor = lista?.find((j) => j.id === id);
+    if (!doServidor) return jogadorAtual();
+
+    const local = jogadorAtual();
+    if (!doServidor.instrumento && local?.id === id && local.instrumento) {
+      gravar(K.jogador, { ...doServidor, instrumento: local.instrumento });
+      atualizarJogador({ instrumento: local.instrumento }).catch(() => {});
+    } else {
+      gravar(K.jogador, doServidor);
+    }
+    return jogadorAtual();
+  }
+
+  // Com login obrigatorio e sem sessao nao ha credencial; nem tenta a rede.
+  const exigeLoginSemSessao = () => estado.exigeLogin && !temSessao();
 
   /** Todos os perfis da conta (uma familia ou turma tem varios). */
   async function listarJogadores() {
@@ -570,6 +607,8 @@ const Api = (() => {
     temSessao,
     jogadorAtual,
     atualizarJogador,
+    definirInstrumento,
+    carregarPerfil,
     listarJogadores,
     criarJogador,
     selecionarJogador,

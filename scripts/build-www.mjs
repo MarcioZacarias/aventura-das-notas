@@ -10,7 +10,7 @@
  * Isso sobrescreve o apiBase de config.js dentro de www/ (o arquivo da raiz
  * fica intacto) e libera o dominio da API no connect-src da CSP.
  */
-import { mkdir, copyFile, rm, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, copyFile, cp, rm, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,7 +19,9 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const www = join(root, 'www');
 
 // Arquivos obrigatorios do jogo.
-const REQUIRED = ['index.html', 'game.js', 'config.js', 'api.js', 'ui-conta.js'];
+const REQUIRED = ['index.html', 'game.js', 'config.js', 'api.js', 'ui-conta.js', 'instrumentos.js'];
+// Pastas copiadas inteiras. sons/ = gravacoes dos instrumentos (scripts/baixar-sons.mjs).
+const PASTAS = ['sons'];
 // Arquivos opcionais (copiados se existirem).
 const OPTIONAL = ['manifest.webmanifest', 'favicon.ico'];
 
@@ -38,6 +40,16 @@ for (const file of [...REQUIRED, ...OPTIONAL]) {
   if (!existsSync(src)) continue;
   await copyFile(src, join(www, file));
   copied.push(file);
+}
+
+for (const pasta of PASTAS) {
+  const src = join(root, pasta);
+  if (!existsSync(src)) {
+    console.error(`ERRO: pasta ${pasta}/ nao encontrada. Rode: node scripts/baixar-sons.mjs`);
+    process.exit(1);
+  }
+  await cp(src, join(www, pasta), { recursive: true });
+  copied.push(pasta + '/');
 }
 
 // ---------------------------------------------------------------------------

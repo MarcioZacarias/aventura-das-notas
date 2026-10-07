@@ -91,6 +91,9 @@ function validarValor(valor, schema, caminho, erros) {
         // entao normalizamos na entrada.
         else valor = valor.toLowerCase();
       }
+      if (schema.pattern && !new RegExp(schema.pattern).test(valor)) {
+        erros.push(`${caminho} tem formato invalido`);
+      }
       if (schema.enum && !schema.enum.includes(valor)) {
         erros.push(`${caminho} deve ser um de: ${schema.enum.join(', ')}`);
       }

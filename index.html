@@ -279,6 +279,61 @@
     text-shadow: 2px 2px 0 rgba(0,0,0,0.18);
   }
   .clef-name { flex: 1; text-align: left; }
+  .clef-btn.hidden, .instrumento-atual.hidden, .voltar-btn.hidden { display: none; }
+
+  /* ===== INSTRUMENTO ===== */
+  .instrumento-atual {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 2px 0 10px;
+    padding: 8px 16px;
+    background: #fff;
+    border: 2px solid #ffcc80;
+    border-radius: 999px;
+    color: #5d4037;
+    font-family: inherit;
+    font-size: clamp(13px, 3.8vw, 16px);
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .instrumento-atual .trocar { color: #ff5722; font-weight: normal; text-decoration: underline; }
+  /* Fundo solido: com a lista longa, a tela inicial transparecendo atras confunde. */
+  #instrumentoScreen { background: linear-gradient(180deg, #fff7e0 0%, #ffe4c0 100%); }
+  #listaInstrumentos { width: 100%; display: flex; flex-direction: column; align-items: center; }
+  .naipe {
+    width: 100%;
+    max-width: 420px;
+    margin-bottom: 14px;
+    text-align: left;
+  }
+  .naipe h3 {
+    font-size: clamp(14px, 4.2vw, 17px);
+    color: #5d4037;
+    margin: 0 0 6px 4px;
+  }
+  .naipe-grade {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+  }
+  .inst-btn {
+    background: #fff;
+    border: 2px solid #ffcc80;
+    border-radius: 14px;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: clamp(13px, 3.8vw, 15px);
+    font-weight: bold;
+    color: #4e342e;
+    text-align: left;
+    cursor: pointer;
+    line-height: 1.25;
+  }
+  .inst-btn .claves { display: block; font-weight: normal; font-size: 0.85em; color: #8d6e63; }
+  .inst-btn.ativo { border-color: #ff5722; background: #fff3e0; }
+  .inst-btn:active { transform: translateY(2px); }
+  .creditos-sons { margin-top: 10px; font-size: 11px !important; color: #a1887f !important; }
 
   .end-buttons {
     display: flex;
@@ -672,6 +727,10 @@
     </div>
     <div class="mascot">🎻</div>
     <h1>Aventura das Notas</h1>
+    <button class="instrumento-atual hidden" id="instrumentoAtualBtn" type="button">
+      <span id="instrumentoAtualNome"></span>
+      <span class="trocar">trocar</span>
+    </button>
     <h2>Escolha a clave!</h2>
     <div class="clef-options">
       <button class="clef-btn" data-clef="sol">
@@ -694,6 +753,18 @@
       ⚡ A velocidade aumenta conforme você acerta<br>
       ❤ Você tem 3 vidas — não erre demais!
     </div>
+    <p class="creditos-sons">Sons dos instrumentos: FluidR3_GM (Frank Wen), licença CC BY 3.0</p>
+  </div>
+
+  <!-- ESCOLHA DO INSTRUMENTO (montada por game.js a partir de instrumentos.js) -->
+  <div class="screen rolavel hidden" id="instrumentoScreen">
+    <div class="conta-topo">
+      <button class="voltar-btn" id="instrumentoVoltarBtn" aria-label="Voltar">&larr;</button>
+    </div>
+    <div class="mascot">🎶</div>
+    <h1>Qual é o seu instrumento?</h1>
+    <p>As notas vão tocar com o som dele, e só aparecem as claves que ele usa.</p>
+    <div id="listaInstrumentos"></div>
   </div>
 
   <!-- GAME OVER SCREEN -->
@@ -824,6 +895,7 @@
 
 <script src="config.js"></script>
 <script src="api.js"></script>
+<script src="instrumentos.js"></script>
 <script src="game.js"></script>
 <script src="ui-conta.js"></script>
 </body>

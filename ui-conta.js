@@ -141,6 +141,20 @@
     contaScreen.classList.add('hidden');
     startScreen.classList.remove('hidden');
     atualizarBotao();
+    avisarJogo();
+  }
+
+  // Cada crianca tem o seu instrumento: quando o perfil muda, a tela inicial
+  // do jogo (game.js) precisa mostrar o instrumento e as claves dele.
+  function avisarJogo() {
+    if (typeof window.atualizarTelaInicial === 'function') window.atualizarTelaInicial();
+  }
+
+  /** Traz o perfil do servidor (com o instrumento) e atualiza o jogo. */
+  function recarregarPerfil() {
+    Api.carregarPerfil()
+      .catch(() => {})
+      .then(avisarJogo);
   }
 
   // ------------------------------------------------------------ modo do form
@@ -229,6 +243,8 @@
           esc(j.id) +
           '" data-apelido="' +
           esc(j.apelido) +
+          '" data-instrumento="' +
+          esc(j.instrumento || '') +
           '">' +
           '<span class="nome">' +
           esc(j.apelido) +
@@ -240,7 +256,11 @@
 
     alvo.querySelectorAll('[data-perfil]').forEach((item) => {
       item.addEventListener('click', () => {
-        Api.selecionarJogador({ id: item.dataset.perfil, apelido: item.dataset.apelido });
+        Api.selecionarJogador({
+          id: item.dataset.perfil,
+          apelido: item.dataset.apelido,
+          instrumento: item.dataset.instrumento || null,
+        });
         el('inApelido').value = item.dataset.apelido;
         msg(el('perfilMsg'), 'Agora quem joga é ' + item.dataset.apelido + '.', 'ok');
         carregarPerfis();
@@ -624,6 +644,7 @@
       atualizarBotao();
     }
     Api.sincronizar().catch(() => {});
+    recarregarPerfil();
   });
 
   el('salvarApelidoBtn').addEventListener('click', async () => {
@@ -741,6 +762,7 @@
       }
       if (emPortao) liberarPortao();
       atualizarBotao();
+      recarregarPerfil();
     })
     .catch((e) => {
       console.warn('Api.init:', e);

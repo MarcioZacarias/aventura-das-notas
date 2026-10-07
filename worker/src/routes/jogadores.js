@@ -10,6 +10,9 @@ import { validarApelido } from '../../../server/src/lib/apelido.js';
 
 const MAX_JOGADORES = 10;
 
+// Formato igual ao CHECK da migration 0003. O catalogo fica no cliente.
+const INSTRUMENTO = { type: 'string', minLength: 2, maxLength: 32, pattern: '^[a-z_]+$' };
+
 const paramId = {
   type: 'object',
   properties: { id: { type: 'string', format: 'uuid' } },
@@ -23,7 +26,7 @@ export default [
     async handler(c) {
       const jogadores = await todos(
         c.db,
-        `select id, apelido, avatar, criado_em from jogadores
+        `select id, apelido, avatar, instrumento, criado_em from jogadores
          where ${colunaDono(c.auth)} = ? order by criado_em`,
         c.auth.id
       );
@@ -41,6 +44,7 @@ export default [
       properties: {
         apelido: { type: 'string', minLength: 2, maxLength: 20 },
         avatar: { type: 'string', maxLength: 16 },
+        instrumento: INSTRUMENTO,
       },
     },
     async handler(c) {
@@ -62,12 +66,13 @@ export default [
 
       const jogador = await primeiro(
         c.db,
-        `insert into jogadores (id, ${coluna}, apelido, avatar)
-         values (?, ?, ?, ?) returning id, apelido, avatar, criado_em`,
+        `insert into jogadores (id, ${coluna}, apelido, avatar, instrumento)
+         values (?, ?, ?, ?, ?) returning id, apelido, avatar, instrumento, criado_em`,
         crypto.randomUUID(),
         c.auth.id,
         apelido,
-        avatar
+        avatar,
+        c.corpo.instrumento ?? null
       );
       return json({ jogador }, 201);
     },
@@ -83,6 +88,8 @@ export default [
       properties: {
         apelido: { type: 'string', minLength: 2, maxLength: 20 },
         avatar: { type: 'string', maxLength: 16 },
+        // Id do catalogo em instrumentos.js. Ausente = nao muda.
+        instrumento: INSTRUMENTO,
       },
     },
     async handler(c) {
@@ -90,6 +97,7 @@ export default [
 
       const apelido = c.corpo.apelido?.trim() ?? jogador.apelido;
       const avatar = c.corpo.avatar?.trim() ?? jogador.avatar;
+      const instrumento = c.corpo.instrumento ?? jogador.instrumento;
 
       if (apelido !== jogador.apelido) {
         const problema = validarApelido(apelido);
@@ -98,10 +106,11 @@ export default [
 
       const atualizado = await primeiro(
         c.db,
-        `update jogadores set apelido = ?, avatar = ?
-         where id = ? returning id, apelido, avatar, criado_em`,
+        `update jogadores set apelido = ?, avatar = ?, instrumento = ?
+         where id = ? returning id, apelido, avatar, instrumento, criado_em`,
         apelido,
         avatar,
+        instrumento,
         jogador.id
       );
       return { jogador: atualizado };
@@ -178,7 +187,7 @@ export default [
            order by criado_em
            limit ?
          )
-         returning id, apelido, avatar, criado_em`,
+         returning id, apelido, avatar, instrumento, criado_em`,
         ...params
       );
       return { vinculados: jogadores.length, jogadores };

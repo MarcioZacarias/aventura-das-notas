@@ -115,6 +115,28 @@ function playNote(freq, duration) {
   } catch (e) { console.warn(e); }
 }
 
+// instrumentos.js e opcional: se nao carregar, o jogo segue com o som sintetizado.
+const temInstrumentos = typeof Instrumentos !== 'undefined';
+const instrumentoAtual = () => (temInstrumentos ? Instrumentos.atual() : null);
+
+/**
+ * Toca a nota com a gravacao do instrumento do jogador, na altura que o
+ * instrumento produz de verdade. Enquanto a gravacao nao carregou (primeira
+ * nota, rede lenta), cai no som sintetizado na mesma altura.
+ */
+function tocarNota(note) {
+  if (muted) return;
+  const inst = instrumentoAtual();
+  if (!inst) {
+    playNote(note.freq, 0.5);
+    return;
+  }
+  try {
+    if (Instrumentos.tocar(getAudioCtx(), inst, note.id, 0.9)) return;
+  } catch (e) { console.warn(e); }
+  playNote(Instrumentos.frequenciaSoando(inst, note.id), 0.5);
+}
+
 function playFx(type) {
   if (muted) return;
   try {
@@ -320,7 +342,7 @@ function updateGame(dt) {
     const n = state.notes[i];
     n.x -= speed * dt / 1000;
     if (!n.soundPlayed && n.x < W * 0.85) {
-      playNote(n.freq, 0.5);
+      tocarNota(n);
       n.soundPlayed = true;
     }
     n.inHitZone = Math.abs(n.x - layout.hitX) < 30;
@@ -466,7 +488,8 @@ function startGame(clefKey) {
   document.getElementById('score').textContent = '0';
   document.getElementById('level').textContent = '1';
   updateHearts();
-  getAudioCtx();
+  const ctxAudio = getAudioCtx();
+  if (instrumentoAtual()) Instrumentos.precarregar(ctxAudio, instrumentoAtual(), state.currentClef);
   setTimeout(resizeCanvas, 50);
   rafId = requestAnimationFrame(gameLoop);
 }
@@ -532,6 +555,96 @@ function registrarResultado() {
     console.warn('Nao foi possivel registrar o resultado:', e);
     el.textContent = '';
   }
+}
+
+// ===== INSTRUMENTO =====
+const instrumentoScreen = document.getElementById('instrumentoScreen');
+
+function nomesDasClaves(claves) {
+  return claves.map(c => 'Clave de ' + (c === 'do' ? 'Dó' : CLEFS[c].label)).join(' e ');
+}
+
+function montarListaInstrumentos() {
+  const atual = instrumentoAtual();
+  const alvo = document.getElementById('listaInstrumentos');
+  alvo.innerHTML = '';
+  for (const naipe of Instrumentos.NAIPES) {
+    const secao = document.createElement('div');
+    secao.className = 'naipe';
+    const titulo = document.createElement('h3');
+    titulo.textContent = naipe.icone + ' ' + naipe.nome;
+    const grade = document.createElement('div');
+    grade.className = 'naipe-grade';
+    for (const inst of Instrumentos.LISTA.filter(i => i.naipe === naipe.id)) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'inst-btn' + (inst.id === atual ? ' ativo' : '');
+      btn.textContent = inst.nome;
+      const claves = document.createElement('span');
+      claves.className = 'claves';
+      claves.textContent = nomesDasClaves(inst.claves);
+      btn.appendChild(claves);
+      btn.addEventListener('click', () => escolherInstrumento(inst.id));
+      grade.appendChild(btn);
+    }
+    secao.appendChild(titulo);
+    secao.appendChild(grade);
+    alvo.appendChild(secao);
+  }
+}
+
+function abrirEscolhaInstrumento() {
+  montarListaInstrumentos();
+  // Sem instrumento ainda, escolher e obrigatorio: nao ha para onde voltar.
+  document.getElementById('instrumentoVoltarBtn').classList.toggle('hidden', !instrumentoAtual());
+  instrumentoScreen.scrollTop = 0;
+  instrumentoScreen.classList.remove('hidden');
+}
+
+function escolherInstrumento(id) {
+  Instrumentos.definir(id);
+  instrumentoScreen.classList.add('hidden');
+  atualizarTelaInicial();
+  // Toque do usuario: momento valido para criar o AudioContext e ja baixar os sons.
+  try { Instrumentos.precarregar(getAudioCtx(), id); } catch (e) { console.warn(e); }
+}
+
+/**
+ * Sincroniza a tela inicial com o instrumento de quem esta jogando: nome no
+ * topo e so as claves que o instrumento le. Chamada tambem por ui-conta.js
+ * quando o perfil muda (cada crianca tem o seu instrumento).
+ */
+function atualizarTelaInicial() {
+  if (!temInstrumentos) return;
+  const id = instrumentoAtual();
+  const inst = id ? Instrumentos.porId(id) : null;
+
+  document.getElementById('instrumentoAtualBtn').classList.toggle('hidden', !inst);
+  if (inst) document.getElementById('instrumentoAtualNome').textContent = '🎼 ' + inst.nome;
+
+  document.querySelectorAll('.clef-btn').forEach(btn => {
+    btn.classList.toggle('hidden', !!inst && !inst.claves.includes(btn.dataset.clef));
+  });
+
+  if (!inst) {
+    abrirEscolhaInstrumento();
+    return;
+  }
+  // A escolha obrigatoria (sem botao de voltar) abriu antes do perfil chegar
+  // do servidor, e o perfil ja tinha instrumento: fecha sozinha.
+  if (document.getElementById('instrumentoVoltarBtn').classList.contains('hidden')) {
+    instrumentoScreen.classList.add('hidden');
+  }
+  if (!inst.claves.includes(state.currentClef)) state.currentClef = inst.claves[0];
+}
+window.atualizarTelaInicial = atualizarTelaInicial;
+
+if (temInstrumentos) {
+  document.getElementById('instrumentoAtualBtn').addEventListener('click', abrirEscolhaInstrumento);
+  document.getElementById('instrumentoVoltarBtn').addEventListener('click', () => {
+    instrumentoScreen.classList.add('hidden');
+  });
+  atualizarTelaInicial();
 }
 
 // ===== EVENTS =====

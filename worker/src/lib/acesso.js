@@ -47,7 +47,7 @@ export const colunaDono = (autenticado) =>
 export function jogadorDoChamador(db, autenticado, jogadorId) {
   return primeiro(
     db,
-    `select id, conta_id, dispositivo_id, apelido, avatar
+    `select id, conta_id, dispositivo_id, apelido, avatar, instrumento
      from jogadores where id = ? and ${colunaDono(autenticado)} = ?`,
     jogadorId,
     autenticado.id
