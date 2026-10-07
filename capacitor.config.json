@@ -1,0 +1,13 @@
+{
+  "appId": "br.com.aventuradasnotas.app",
+  "appName": "Aventura das Notas",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

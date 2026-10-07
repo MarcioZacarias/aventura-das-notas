@@ -1,0 +1,37 @@
+{
+  "name": "aventura-das-notas",
+  "version": "1.0.0",
+  "description": "Jogo para aprendizado de notas musicais",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/dev-server.mjs",
+    "build": "node scripts/build-www.mjs",
+    "build:cloudflare": "node scripts/build-www.mjs --api-base https://aventura-das-notas.marcio-zacariass.workers.dev",
+    "sync": "npm run build && cap sync android",
+    "apk": "npm run sync && node scripts/build-android.mjs debug",
+    "aab": "npm run sync && node scripts/build-android.mjs release",
+    "open:android": "cap open android",
+    "assets": "capacitor-assets generate --android",
+    "server:up": "docker compose up -d --build",
+    "server:down": "docker compose down",
+    "server:logs": "docker compose logs -f api",
+    "server:reset": "docker compose down -v",
+    "test:api": "node server/teste-e2e.mjs",
+    "test:cliente": "node server/teste-cliente.mjs",
+    "test": "npm run test:api && npm run test:cliente",
+    "worker:dev": "wrangler dev",
+    "worker:migrar:local": "wrangler d1 migrations apply DB --local",
+    "worker:migrar": "wrangler d1 migrations apply DB --remote",
+    "worker:deploy": "wrangler deploy && wrangler d1 migrations apply DB --remote",
+    "test:worker": "node server/teste-e2e.mjs http://localhost:8787 && node server/teste-cliente.mjs http://localhost:8787"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.0.0",
+    "wrangler": "^4.148.0"
+  }
+}

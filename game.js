@@ -278,7 +278,11 @@ const state = {
   lastTime: 0,
   consecutiveCorrect: 0,
   notesPlayed: 0,
-  currentClef: 'sol'
+  currentClef: 'sol',
+  // Contadores da partida, enviados ao servidor no fim (ver api.js).
+  acertos: 0,
+  erros: 0,
+  inicioEm: 0
 };
 
 function pickNextNote() {
@@ -374,6 +378,7 @@ function handleAnswer(buttonId) {
   target.answered = true;
   if (correct) {
     state.score++;
+    state.acertos++;
     state.consecutiveCorrect++;
     document.getElementById('score').textContent = state.score;
     flashFeedback('correct', randomCheer());
@@ -403,6 +408,7 @@ function handleMiss(note) {
 }
 
 function loseLife() {
+  state.erros++;
   state.lives--;
   updateHearts();
   if (state.lives <= 0) endGame();
@@ -454,6 +460,9 @@ function startGame(clefKey) {
   state.consecutiveCorrect = 0;
   state.notesPlayed = 0;
   state.spawnInterval = 2400;
+  state.acertos = 0;
+  state.erros = 0;
+  state.inicioEm = Date.now();
   document.getElementById('score').textContent = '0';
   document.getElementById('level').textContent = '1';
   updateHearts();
@@ -469,6 +478,7 @@ function endGame() {
   document.getElementById('finalScore').textContent = state.score;
   document.getElementById('finalLevel').textContent = state.level;
   document.getElementById('finalClef').textContent = CLEFS[state.currentClef].label;
+  registrarResultado();
   let title, msg, mascot;
   if (state.score >= 30) { title = 'Incrível!'; msg = 'Você é um(a) grande músico(a)!'; mascot = '🏆'; }
   else if (state.score >= 15) { title = 'Muito bom!'; msg = 'Você está aprendendo rápido!'; mascot = '🎉'; }
@@ -480,6 +490,48 @@ function endGame() {
   setTimeout(() => {
     document.getElementById('endScreen').classList.remove('hidden');
   }, 600);
+}
+
+/**
+ * Fecha a partida: grava o resultado (local sempre, servidor se houver) e
+ * mostra o recorde. Tudo aqui e defensivo — se api.js nao carregou ou a rede
+ * caiu, a tela de fim de jogo continua funcionando normalmente.
+ */
+function registrarResultado() {
+  const el = document.getElementById('recordeInfo');
+  if (!el) return;
+
+  if (typeof Api === 'undefined') {
+    el.textContent = '';
+    return;
+  }
+
+  try {
+    const duracao = state.inicioEm ? Date.now() - state.inicioEm : 0;
+    const r = Api.registrarPartida({
+      clave: state.currentClef,
+      pontuacao: state.score,
+      acertos: state.acertos,
+      erros: state.erros,
+      nivel_max: state.level,
+      duracao_ms: Math.max(1, duracao)
+    });
+
+    let texto = r.novoRecorde
+      ? 'Novo recorde nesta clave! 🏅'
+      : 'Seu recorde nesta clave: ' + r.recorde;
+
+    // Avisa se ha partidas esperando conexao, para o jogador nao achar que
+    // o progresso se perdeu.
+    const pendentes = Api.pendentes();
+    if (pendentes > 0) {
+      texto += ' · ' + pendentes + ' partida(s) aguardando conexão';
+    }
+    el.textContent = texto;
+  } catch (e) {
+    console.warn('Nao foi possivel registrar o resultado:', e);
+    el.textContent = '';
+  }
 }
 
 // ===== EVENTS =====
@@ -531,3 +583,7 @@ document.addEventListener('touchend', e => {
 }, false);
 
 setTimeout(resizeCanvas, 50);
+
+// A inicializacao da sessao fica em ui-conta.js, que e quem decide se o jogo
+// libera ou se o portao de login aparece. Chamar Api.init() aqui tambem
+// duplicaria o registro e a sincronizacao.

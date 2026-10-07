@@ -1,0 +1,25 @@
+# Proxy reverso com HTTPS automatico (Let's Encrypt).
+#
+# O Caddy obtem e renova o certificado sozinho — nao ha certbot nem cron para
+# manter. Requer apenas que o dominio aponte para o IP do servidor e que as
+# portas 80 e 443 estejam abertas.
+#
+# {$DOMINIO_API} vem do .env via docker-compose.prod.yml.
+
+{$DOMINIO_API} {
+	encode gzip
+
+	# Cabecalhos de seguranca basicos para uma API.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	reverse_proxy api:3000 {
+		health_uri /health
+		health_interval 30s
+	}
+}

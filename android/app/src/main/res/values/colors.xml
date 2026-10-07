@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      O template do Capacitor referencia estas tres cores em styles.xml mas nao as
+      define; sem este arquivo o build falha com "resource color/colorPrimary not found".
+      Valores derivados da paleta do jogo (header laranja + zona de acerto dourada).
+    -->
+    <color name="colorPrimary">#EF6A3E</color>
+    <color name="colorPrimaryDark">#C5471E</color>
+    <color name="colorAccent">#FFB300</color>
+
+    <!-- Fundo da splash screen do Android 12+ (API 31+), onde o glifo branco aparece por cima. -->
+    <color name="splashBackground">#EF6A3E</color>
+</resources>

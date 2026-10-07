@@ -1,0 +1,30 @@
+# Overlay de producao: adiciona o Caddy na frente da API, com TLS automatico.
+#
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.prod.yml up -d
+#
+# Antes de subir, no .env do servidor:
+#   API_BIND=127.0.0.1        (a API deixa de ser acessivel de fora)
+#   DOMINIO_API=api.seudominio.com.br
+#   CORS_ORIGINS=https://localhost,capacitor://localhost
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMINIO_API: ${DOMINIO_API:?defina DOMINIO_API no .env}
+    volumes:
+      # Caminho relativo ao DIRETORIO DO PROJETO (raiz), nao a este arquivo:
+      # o Compose resolve paths do override contra o projeto.
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  caddy-data:
+  caddy-config:

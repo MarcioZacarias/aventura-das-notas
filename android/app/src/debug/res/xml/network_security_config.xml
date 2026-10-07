@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  APENAS PARA BUILDS DE DEBUG (source set src/debug/).
+
+  Desde o targetSdk 28 o Android bloqueia HTTP em texto claro. Isso impede
+  testar o modo online contra a API rodando na maquina de desenvolvimento
+  (http://192.168.x.x:3000) — as requisicoes falham sem erro visivel na tela.
+
+  Liberamos cleartext aqui de forma ampla, em vez de listar um IP, porque o
+  network-security-config nao aceita faixa nem curinga de IP, e o IP da LAN
+  muda. Como este arquivo vive em src/debug/, ele NAO entra no APK/AAB de
+  release: o app publicado continua exigindo HTTPS.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

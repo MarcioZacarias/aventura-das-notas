@@ -1,0 +1,53 @@
+# ===== Node =====
+node_modules/
+npm-debug.log*
+
+# ===== Build web (gerada por scripts/build-www.mjs) =====
+www/
+
+# ===== SEGREDOS DE ASSINATURA — NUNCA COMITAR =====
+# Perder a keystore de upload significa nao poder mais atualizar o app.
+# Guarde-a em backup seguro FORA do repositorio (gerenciador de senhas / cofre).
+*.jks
+*.keystore
+android/keystore.properties
+
+# ===== Binarios gerados =====
+*.apk
+*.aab
+
+# ===== Android =====
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/.idea/
+android/captures/
+android/*.iml
+android/app/release/
+android/app/debug/
+# Assets web copiados pelo `cap sync` — sao gerados, nao fonte.
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+
+# ===== iOS (quando a plataforma for adicionada) =====
+ios/App/Pods/
+ios/App/App/public/
+ios/App/build/
+ios/capacitor-cordova-ios-plugins/
+
+# ===== Editores / SO =====
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Segredos do backend
+.env
+
+# Backups do banco gerados por deploy/backup.sh
+backups/
+
+# Cloudflare Workers: estado local do wrangler (D1 local) e segredos de dev
+.wrangler/
+.dev.vars
