@@ -156,6 +156,29 @@ const Instrumentos = (() => {
   // AudioBuffers decodificados, por caminho do arquivo.
   const buffers = new Map();
   const carregando = new Map();
+  // Ganho de cada gravacao para todas soarem no mesmo volume.
+  const ganhos = new Map();
+
+  // As gravacoes do FluidR3 tem pico perto de 0,1 (-20 dBFS): tocadas como
+  // vieram, ficam ~5x mais baixas que o som sintetizado e os efeitos do jogo,
+  // e no alto-falante do celular parecem mudas. Normalizamos cada uma para
+  // este pico, que iguala o volume do som sintetizado.
+  const PICO_ALVO = 0.45;
+  const GANHO_MAXIMO = 8;
+
+  function medirGanho(buf) {
+    let pico = 0;
+    // O trecho tocado e o primeiro segundo; e ele que importa.
+    const fim = Math.min(buf.length, buf.sampleRate);
+    for (let c = 0; c < buf.numberOfChannels; c++) {
+      const dados = buf.getChannelData(c);
+      for (let i = 0; i < fim; i++) {
+        const v = Math.abs(dados[i]);
+        if (v > pico) pico = v;
+      }
+    }
+    return pico > 0 ? Math.min(GANHO_MAXIMO, PICO_ALVO / pico) : 1;
+  }
 
   const caminho = (amostra, nota) => `sons/${amostra}/${nota}.mp3`;
 
@@ -172,6 +195,7 @@ const Instrumentos = (() => {
       // Forma com callbacks: o Safari antigo nao devolve Promise aqui.
       .then((dados) => new Promise((ok, falha) => ctx.decodeAudioData(dados, ok, falha)))
       .then((buf) => {
+        ganhos.set(arq, medirGanho(buf));
         buffers.set(arq, buf);
         carregando.delete(arq);
         return buf;
@@ -204,12 +228,14 @@ const Instrumentos = (() => {
   function tocar(ctx, instrumentoId, nota, duracao) {
     const inst = POR_ID[instrumentoId];
     if (!inst || !ctx) return false;
-    const buf = buffers.get(caminho(inst.amostra, notaSoando(inst.id, nota)));
+    const arq = caminho(inst.amostra, notaSoando(inst.id, nota));
+    const buf = buffers.get(arq);
     if (!buf) {
       carregar(ctx, inst.amostra, notaSoando(inst.id, nota));
       return false;
     }
 
+    const volume = ganhos.get(arq) || 1;
     const agora = ctx.currentTime;
     const fim = agora + duracao;
     const fonte = ctx.createBufferSource();
@@ -217,9 +243,9 @@ const Instrumentos = (() => {
     fonte.buffer = buf;
     fonte.connect(ganho);
     ganho.connect(ctx.destination);
-    ganho.gain.setValueAtTime(0.7, agora);
+    ganho.gain.setValueAtTime(volume, agora);
     // Corta a gravacao com uma saida suave, sem estalo.
-    ganho.gain.setValueAtTime(0.7, Math.max(agora, fim - 0.15));
+    ganho.gain.setValueAtTime(volume, Math.max(agora, fim - 0.15));
     ganho.gain.linearRampToValueAtTime(0, fim);
     fonte.start(agora);
     fonte.stop(fim + 0.02);
