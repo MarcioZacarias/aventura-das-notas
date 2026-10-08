@@ -58,7 +58,7 @@ const Hinos = (() => {
   ];
   const TOM_POR_ID = Object.fromEntries(TONS.map((t) => [t.id, t]));
 
-  const COMPASSOS = ['2/2', '2/4', '3/2', '3/4', '3/8', '4/4', '6/8', '9/8', '12/8'];
+  const COMPASSOS = ['2/2', '2/4', '3/2', '3/4', '3/8', '4/4', '6/4', '6/8', '9/4', '9/8', '12/8'];
 
   /** Binario, ternario ou quaternario, pelo numero de tempos do compasso. */
   function tipoCompasso(compasso) {

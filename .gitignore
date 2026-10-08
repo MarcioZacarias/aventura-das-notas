@@ -51,3 +51,6 @@ backups/
 # Cloudflare Workers: estado local do wrangler (D1 local) e segredos de dev
 .wrangler/
 .dev.vars
+
+# Conteudo extraido do hinario (direitos de terceiros): nunca vai para o git
+dados-privados/

@@ -9,7 +9,7 @@ import { json, falha } from '../http.js';
 import { agora, executar, primeiro, todos, violouUnico } from '../db.js';
 
 const CLAVES = ['sol', 'fa', 'do'];
-const COMPASSOS = ['2/2', '2/4', '3/2', '3/4', '3/8', '4/4', '6/8', '9/8', '12/8'];
+const COMPASSOS = ['2/2', '2/4', '3/2', '3/4', '3/8', '4/4', '6/4', '6/8', '9/4', '9/8', '12/8'];
 
 // Notas escritas: "E4 F4# B4b" (ver hinos.js). De 2 a 64 notas.
 const RE_TRECHO = '^[A-G][1-7][#bn]?( [A-G][1-7][#bn]?){1,63}$';
