@@ -10,6 +10,7 @@ import {
   tokenAleatorio,
   validarForcaSenha,
 } from '../lib/cripto.js';
+import { ehEmailAdmin } from '../lib/acesso.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -163,7 +164,7 @@ export default [
       }
 
       const tokens = await abrirSessao(c, conta.id);
-      return json({ conta, ...tokens }, 201);
+      return json({ conta: { ...conta, admin: ehEmailAdmin(c.cfg, conta.email) }, ...tokens }, 201);
     },
   },
 
@@ -203,7 +204,10 @@ export default [
       await executar(c.db, 'update contas set ultimo_acesso_em = ? where id = ?', agora(), conta.id);
       const tokens = await abrirSessao(c, conta.id);
 
-      return { conta: { id: conta.id, email: conta.email, nome: conta.nome }, ...tokens };
+      return {
+        conta: { id: conta.id, email: conta.email, nome: conta.nome, admin: ehEmailAdmin(c.cfg, conta.email) },
+        ...tokens,
+      };
     },
   },
 
@@ -285,7 +289,11 @@ export default [
           id
         ),
       ]);
-      return { tipo: 'conta', conta, jogadores };
+      return {
+        tipo: 'conta',
+        conta: conta && { ...conta, admin: ehEmailAdmin(c.cfg, conta.email) },
+        jogadores,
+      };
     },
   },
 ];

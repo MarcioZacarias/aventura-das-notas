@@ -43,6 +43,8 @@
   "vars": {
     "CORS_ORIGINS": "https://localhost,capacitor://localhost,https://aventura-das-notas.marcio-zacariass.workers.dev",
     "RANKING_MOSTRA_APELIDOS": "true",
-    "RANKING_TAMANHO_TOPO": "10"
+    "RANKING_TAMANHO_TOPO": "10",
+    // Contas com acesso ao painel do administrador (/admin.html), separadas por virgula.
+    "ADMIN_EMAILS": "marcio.zacariass@gmail.com"
   }
 }

@@ -33,6 +33,20 @@ export async function autenticar(req, cfg, exigeConta = false) {
   return { tipo: payload.tipo, id: payload.sub };
 }
 
+/** O e-mail esta na lista de administradores (var ADMIN_EMAILS)? */
+export const ehEmailAdmin = (cfg, email) =>
+  !!email && cfg.adminEmails.includes(String(email).trim().toLowerCase());
+
+/**
+ * Exige conta de administrador. O e-mail e lido do banco a cada chamada, e
+ * nao do token: tirar alguem da lista vale na hora, sem esperar o token expirar.
+ */
+export async function exigirAdmin(c) {
+  const conta = await primeiro(c.db, 'select email from contas where id = ?', c.auth.id);
+  // 404 em vez de 403: nao anuncia que a rota existe.
+  if (!conta || !ehEmailAdmin(c.cfg, conta.email)) throw falha(404, 'Rota nao encontrada.');
+}
+
 /** Coluna de dono do jogador para o tipo de credencial. */
 export const colunaDono = (autenticado) =>
   autenticado.tipo === 'conta' ? 'conta_id' : 'dispositivo_id';

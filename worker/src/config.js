@@ -33,6 +33,12 @@ export function lerConfig(env) {
     // So para a suite de testes local (.dev.vars). Nunca em producao.
     limitesDesligados: String(env.RATE_LIMIT_DESLIGADO) === 'true',
 
+    // Contas que acessam o painel do administrador (admin.html).
+    adminEmails: String(env.ADMIN_EMAILS || '')
+      .split(',')
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean),
+
     corsOrigins: String(env.CORS_ORIGINS || '*')
       .split(',')
       .map((s) => s.trim())

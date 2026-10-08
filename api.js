@@ -29,6 +29,7 @@ const Api = (() => {
     fila: 'adn.fila',
     recordes: 'adn.recordes',
     conta: 'adn.conta',
+    hinos: 'adn.hinos',
   };
 
   // ----------------------------------------------------------- armazenamento
@@ -466,6 +467,38 @@ const Api = (() => {
     return jogadorAtual();
   }
 
+  /**
+   * Dados da conta logada vindos do servidor (inclui `admin`). Atualiza a
+   * copia local, usada pela tela de conta para mostrar o link do painel.
+   */
+  async function eu() {
+    if (!estado.ligado || !temSessao()) return null;
+    const r = await autenticado('GET', '/v1/eu');
+    if (!r.ok || !r.dados?.conta) return null;
+    gravar(K.conta, r.dados.conta);
+    return r.dados.conta;
+  }
+
+  // ------------------------------------------------------------------ hinos
+  /**
+   * Hinos cadastrados pelo administrador + nivel minimo. Guarda copia local:
+   * o jogo le a copia de forma sincrona (hinosEmCache) e continua com hinos
+   * mesmo sem internet.
+   */
+  async function hinos() {
+    if (!estado.ligado || exigeLoginSemSessao()) return hinosEmCache();
+    const r = await autenticado('GET', '/v1/hinos');
+    if (r.ok && r.dados) gravar(K.hinos, r.dados);
+    return hinosEmCache();
+  }
+
+  const hinosEmCache = () => ler(K.hinos, null);
+
+  /** Chamada do painel do administrador: { ok, status, dados }. */
+  async function admin(metodo, caminho, corpo) {
+    return autenticado(metodo, `/v1/admin${caminho}`, corpo);
+  }
+
   // Com login obrigatorio e sem sessao nao ha credencial; nem tenta a rede.
   const exigeLoginSemSessao = () => estado.exigeLogin && !temSessao();
 
@@ -609,6 +642,10 @@ const Api = (() => {
     atualizarJogador,
     definirInstrumento,
     carregarPerfil,
+    eu,
+    hinos,
+    hinosEmCache,
+    admin,
     listarJogadores,
     criarJogador,
     selecionarJogador,

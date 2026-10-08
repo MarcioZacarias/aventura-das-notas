@@ -150,11 +150,18 @@
     if (typeof window.atualizarTelaInicial === 'function') window.atualizarTelaInicial();
   }
 
-  /** Traz o perfil do servidor (com o instrumento) e atualiza o jogo. */
+  /**
+   * Traz do servidor o perfil (com o instrumento), os dados da conta (com a
+   * marca de administrador) e os hinos, e atualiza o jogo.
+   */
   function recarregarPerfil() {
     Api.carregarPerfil()
       .catch(() => {})
       .then(avisarJogo);
+    Api.eu()
+      .then(() => renderizar())
+      .catch(() => {});
+    Api.hinos().catch(() => {});
   }
 
   // ------------------------------------------------------------ modo do form
@@ -179,6 +186,8 @@
     blocoDeslogado.classList.toggle('hidden', logado);
     blocoLogado.classList.toggle('hidden', !logado);
     blocoSair.classList.toggle('hidden', !logado);
+    // So aparece para quem o servidor marcou como administrador.
+    el('adminLink').classList.toggle('hidden', !(logado && conta.admin));
     // No portao nao existe sessao: perfis, ranking e turmas nao teriam o que
     // carregar, e cada chamada voltaria 401.
     blocoComum.classList.toggle('hidden', emPortao);

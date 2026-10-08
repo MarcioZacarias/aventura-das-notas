@@ -234,13 +234,63 @@ const Instrumentos = (() => {
       carregar(ctx, inst.amostra, notaSoando(inst.id, nota));
       return false;
     }
+    reproduzir(ctx, arq, buf, 1, duracao);
+    return true;
+  }
 
+  // Nota (com bemol, ex. "Eb3") -> MIDI.
+  const INDICE = Object.fromEntries(NOMES.map((n, i) => [n, i]));
+  const midiDoNome = (nome) => {
+    const m = /^([A-G]b?)(-?d)$/.exec(nome);
+    return 12 * (Number(m[2]) + 1) + INDICE[m[1]];
+  };
+
+  // Maior desvio aceito ao reaproveitar uma gravacao vizinha. Alem disso o
+  // timbre deforma; cai no som sintetizado.
+  const DESVIO_MAXIMO = 5;
+
+  /**
+   * Toca uma nota ESCRITA dada em MIDI (com acidentes; usada pelos hinos).
+   * Usa a gravacao mais proxima do instrumento e ajusta a altura pela
+   * velocidade de reproducao. Devolve false se nao ha gravacao pronta perto.
+   */
+  function tocarMidi(ctx, instrumentoId, midiEscrito, duracao) {
+    const inst = POR_ID[instrumentoId];
+    if (!inst || !ctx) return false;
+    const alvo = midiEscrito + inst.transposicao;
+
+    const candidatas = [...new Set(arquivosDo(inst.id).map((a) => a.nota))]
+      .map((nota) => ({ nota, midi: midiDoNome(nota) }))
+      .sort((a, b) => Math.abs(a.midi - alvo) - Math.abs(b.midi - alvo));
+
+    const maisProxima = candidatas[0];
+    if (!maisProxima || Math.abs(maisProxima.midi - alvo) > DESVIO_MAXIMO) return false;
+    if (!buffers.has(caminho(inst.amostra, maisProxima.nota))) carregar(ctx, inst.amostra, maisProxima.nota);
+
+    const pronta = candidatas.find(
+      (cand) => Math.abs(cand.midi - alvo) <= DESVIO_MAXIMO && buffers.has(caminho(inst.amostra, cand.nota))
+    );
+    if (!pronta) return false;
+    const arq = caminho(inst.amostra, pronta.nota);
+    reproduzir(ctx, arq, buffers.get(arq), Math.pow(2, (alvo - pronta.midi) / 12), duracao);
+    return true;
+  }
+
+  /** Frequencia em Hz do som real de uma nota escrita em MIDI. */
+  function frequenciaMidi(instrumentoId, midiEscrito) {
+    const inst = POR_ID[instrumentoId];
+    const midi = midiEscrito + (inst ? inst.transposicao : 0);
+    return 440 * Math.pow(2, (midi - 69) / 12);
+  }
+
+  function reproduzir(ctx, arq, buf, velocidade, duracao) {
     const volume = ganhos.get(arq) || 1;
     const agora = ctx.currentTime;
     const fim = agora + duracao;
     const fonte = ctx.createBufferSource();
     const ganho = ctx.createGain();
     fonte.buffer = buf;
+    fonte.playbackRate.value = velocidade;
     fonte.connect(ganho);
     ganho.connect(ctx.destination);
     ganho.gain.setValueAtTime(volume, agora);
@@ -249,7 +299,6 @@ const Instrumentos = (() => {
     ganho.gain.linearRampToValueAtTime(0, fim);
     fonte.start(agora);
     fonte.stop(fim + 0.02);
-    return true;
   }
 
   return {
@@ -263,6 +312,8 @@ const Instrumentos = (() => {
     arquivosDo,
     precarregar,
     tocar,
+    tocarMidi,
+    frequenciaMidi,
   };
 })();
 

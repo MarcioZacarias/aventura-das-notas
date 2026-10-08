@@ -23,7 +23,7 @@
     "worker:migrar:local": "wrangler d1 migrations apply DB --local",
     "worker:migrar": "wrangler d1 migrations apply DB --remote",
     "worker:deploy": "wrangler deploy && wrangler d1 migrations apply DB --remote",
-    "test:worker": "node server/teste-e2e.mjs http://localhost:8787 && node server/teste-cliente.mjs http://localhost:8787"
+    "test:worker": "node server/teste-e2e.mjs http://localhost:8787 && node server/teste-cliente.mjs http://localhost:8787 && node worker/teste-hinos.mjs http://localhost:8787"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",

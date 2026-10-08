@@ -127,14 +127,20 @@ const instrumentoAtual = () => (temInstrumentos ? Instrumentos.atual() : null);
 function tocarNota(note) {
   if (muted) return;
   const inst = instrumentoAtual();
+  // Nota de hino: altura exata em MIDI (pode ter bemol/sustenido).
+  const temMidi = typeof note.midi === 'number';
   if (!inst) {
-    playNote(note.freq, 0.5);
+    playNote(temMidi ? 440 * Math.pow(2, (note.midi - 69) / 12) : note.freq, 0.5);
     return;
   }
   try {
-    if (Instrumentos.tocar(getAudioCtx(), inst, note.id, 0.9)) return;
+    const ctxAudio = getAudioCtx();
+    const tocou = temMidi
+      ? Instrumentos.tocarMidi(ctxAudio, inst, note.midi, 0.9)
+      : Instrumentos.tocar(ctxAudio, inst, note.id, 0.9);
+    if (tocou) return;
   } catch (e) { console.warn(e); }
-  playNote(Instrumentos.frequenciaSoando(inst, note.id), 0.5);
+  playNote(temMidi ? Instrumentos.frequenciaMidi(inst, note.midi) : Instrumentos.frequenciaSoando(inst, note.id), 0.5);
 }
 
 function playFx(type) {
@@ -192,7 +198,8 @@ function getLayout() {
     staffBottom: staffTop + staffHeight,
     clefX: 14,
     clefWidth: 50,
-    hitX: 90,
+    // Afastado da clave para caber a armadura dos hinos.
+    hitX: 124,
     spawnX: W + 30,
     despawnX: -40
   };
@@ -227,6 +234,8 @@ function drawStaff(layout) {
   const clefDef = CLEFS[state.currentClef];
   const clefCenterY = noteY(clefDef.centerStep, layout);
   drawClef(clefDef, layout.clefX, clefCenterY, layout.lineSpacing * 4);
+  const hino = hinoNaTela();
+  if (hino && hino.armadura) drawArmadura(hino.armadura, layout);
 
   const grad = ctx.createLinearGradient(layout.hitX - 22, 0, layout.hitX + 22, 0);
   grad.addColorStop(0, 'rgba(255, 193, 7, 0)');
@@ -246,6 +255,21 @@ function drawStaff(layout) {
   ctx.restore();
 }
 
+function drawArmadura(armadura, layout) {
+  const simbolos = Hinos.armaduraNaPauta(state.currentClef, armadura);
+  ctx.save();
+  ctx.fillStyle = '#3e2723';
+  ctx.font = 'bold ' + Math.round(layout.lineSpacing * 1.25) + 'px "Noto Music", "Apple Symbols", serif';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+  simbolos.forEach((s, i) => {
+    // O glifo do bemol tem o centro visual acima do meio.
+    const ajuste = s.simbolo === '♭' ? -layout.lineSpacing * 0.25 : 0;
+    ctx.fillText(s.simbolo, layout.clefX + 62 + i * 8, noteY(s.step, layout) + ajuste);
+  });
+  ctx.restore();
+}
+
 function drawNote(note, layout) {
   const y = noteY(note.step, layout);
   const x = note.x;
@@ -253,13 +277,30 @@ function drawNote(note, layout) {
   const headW = ls * 0.9;
   const headH = ls * 0.7;
   ctx.save();
-  if (note.step >= 10) {
-    ctx.strokeStyle = '#5d4037';
-    ctx.lineWidth = 1.8;
+  // Linhas suplementares: abaixo da pauta (step 10, 12...) e acima (-2, -4...).
+  ctx.strokeStyle = '#5d4037';
+  ctx.lineWidth = 1.8;
+  for (let s = 10; s <= note.step; s += 2) {
+    const yl = noteY(s, layout);
     ctx.beginPath();
-    ctx.moveTo(x - headW * 0.8, y);
-    ctx.lineTo(x + headW * 0.8, y);
+    ctx.moveTo(x - headW * 0.8, yl);
+    ctx.lineTo(x + headW * 0.8, yl);
     ctx.stroke();
+  }
+  for (let s = -2; s >= note.step; s -= 2) {
+    const yl = noteY(s, layout);
+    ctx.beginPath();
+    ctx.moveTo(x - headW * 0.8, yl);
+    ctx.lineTo(x + headW * 0.8, yl);
+    ctx.stroke();
+  }
+  if (note.acidente && typeof Hinos !== 'undefined') {
+    ctx.fillStyle = '#3e2723';
+    ctx.font = 'bold ' + Math.round(ls * 1.25) + 'px "Noto Music", "Apple Symbols", serif';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'right';
+    const ajuste = note.acidente === 'b' ? -ls * 0.25 : 0;
+    ctx.fillText(Hinos.SIMBOLO[note.acidente], x - headW * 0.75, y + ajuste);
   }
   const stemDown = note.step <= 4;
   ctx.strokeStyle = '#3e2723';
@@ -304,7 +345,11 @@ const state = {
   // Contadores da partida, enviados ao servidor no fim (ver api.js).
   acertos: 0,
   erros: 0,
-  inicioEm: 0
+  inicioEm: 0,
+  // Trecho de hino em andamento: notas que ainda vao nascer e o hino delas.
+  hinoFila: [],
+  hinoCorrente: null,
+  notasDesdeHino: 0
 };
 
 function pickNextNote() {
@@ -322,9 +367,14 @@ function pickNextNote() {
 
 function spawnNote() {
   const layout = getLayout();
-  const def = pickNextNote();
+  if (!state.hinoFila.length) talvezIniciarHino();
+  const doHino = state.hinoFila.length > 0;
+  const def = doHino ? state.hinoFila.shift() : pickNextNote();
+  if (doHino) state.notasDesdeHino = 0;
+  else state.notasDesdeHino++;
   state.notes.push({
     id: def.id, button: def.button, label: def.label, freq: def.freq, step: def.step,
+    midi: def.midi, acidente: def.acidente || null, hino: doHino ? state.hinoCorrente : null,
     x: layout.spawnX, flash: false, inHitZone: false, answered: false, soundPlayed: false
   });
   state.notesPlayed++;
@@ -362,11 +412,79 @@ function updateGame(dt) {
   }
 }
 
+// ===== HINOS =====
+// Os hinos sao cadastrados no painel do administrador (admin.html) e chegam
+// por api.js, com copia local para jogar sem internet.
+const temHinos = typeof Hinos !== 'undefined';
+// Notas avulsas entre um trecho de hino e o proximo, e a chance de um trecho
+// comecar depois disso.
+const INTERVALO_ENTRE_HINOS = 10;
+const CHANCE_DE_HINO = 0.4;
+
+function dadosHinos() {
+  if (!temHinos || typeof Api === 'undefined' || !Api.hinosEmCache) return null;
+  return Api.hinosEmCache();
+}
+
+function talvezIniciarHino() {
+  const dados = dadosHinos();
+  if (!dados || !dados.hinos || !dados.hinos.length) return;
+  if (state.level < (dados.nivel_minimo || 1)) return;
+  if (state.notasDesdeHino < INTERVALO_ENTRE_HINOS || Math.random() > CHANCE_DE_HINO) return;
+
+  const clave = state.currentClef;
+  const possiveis = dados.hinos.filter(h => h.trechos && h.trechos[clave]);
+  if (!possiveis.length) return;
+  // Evita repetir o mesmo hino em seguida quando ha outro.
+  const outros = possiveis.filter(h => !state.hinoCorrente || h.id !== state.hinoCorrente.id);
+  const lista = outros.length ? outros : possiveis;
+  const hino = lista[Math.floor(Math.random() * lista.length)];
+  let notas;
+  try {
+    notas = Hinos.notasDoTrecho(hino.trechos[clave], clave, hino.armadura);
+  } catch (e) {
+    console.warn('Trecho invalido no hino ' + hino.numero, e);
+    return;
+  }
+  state.hinoCorrente = hino;
+  state.hinoFila = notas;
+}
+
+/** Hino cujas notas estao na tela (ou ainda vao nascer). */
+function hinoNaTela() {
+  if (state.hinoFila.length) return state.hinoCorrente;
+  const n = state.notes.find(x => x.hino && !x.answered);
+  return n ? n.hino : null;
+}
+
+const hinoBannerEl = document.getElementById('hinoBanner');
+let hinoMostrado = null;
+function atualizarBannerHino() {
+  if (!hinoBannerEl) return;
+  const hino = state.running ? hinoNaTela() : null;
+  if (hino === hinoMostrado) return;
+  hinoMostrado = hino;
+  if (!hino) {
+    hinoBannerEl.classList.add('hidden');
+    return;
+  }
+  const tom = Hinos.tom(hino.tom);
+  const partes = [
+    tom ? tom.nome : hino.tom,
+    Hinos.tipoCompasso(hino.compasso) + ' (' + hino.compasso + ')'
+  ];
+  if (hino.andamento) partes.push('♩ = ' + hino.andamento);
+  hinoBannerEl.querySelector('.hino-titulo').textContent = '🎵 Hino ' + hino.numero + ' · ' + hino.nome;
+  hinoBannerEl.querySelector('.hino-detalhes').textContent = partes.join(' · ');
+  hinoBannerEl.classList.remove('hidden');
+}
+
 function render() {
   ctx.clearRect(0, 0, W, H);
   const layout = getLayout();
   drawStaff(layout);
   for (const n of state.notes) drawNote(n, layout);
+  atualizarBannerHino();
 }
 
 let rafId = null;
@@ -485,6 +603,13 @@ function startGame(clefKey) {
   state.acertos = 0;
   state.erros = 0;
   state.inicioEm = Date.now();
+  state.hinoFila = [];
+  state.hinoCorrente = null;
+  state.notasDesdeHino = 0;
+  // Atualiza os hinos em segundo plano; a partida usa a copia local.
+  if (temHinos && typeof Api !== 'undefined' && Api.estado && Api.estado.ligado) {
+    Api.hinos().catch(() => {});
+  }
   document.getElementById('score').textContent = '0';
   document.getElementById('level').textContent = '1';
   updateHearts();
@@ -498,6 +623,8 @@ function endGame() {
   state.running = false;
   if (rafId) cancelAnimationFrame(rafId);
   state.notes = [];
+  state.hinoFila = [];
+  atualizarBannerHino();
   document.getElementById('finalScore').textContent = state.score;
   document.getElementById('finalLevel').textContent = state.level;
   document.getElementById('finalClef').textContent = CLEFS[state.currentClef].label;

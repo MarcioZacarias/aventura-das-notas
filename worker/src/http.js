@@ -77,6 +77,8 @@ function validarValor(valor, schema, caminho, erros) {
         erros.push(`${caminho} deve ser texto`);
         return valor;
       }
+      // anyOfVazio: aceita "" alem do formato normal (usado para apagar campo).
+      if (schema.anyOfVazio && valor.trim() === '') return '';
       // Ajv conta caracteres Unicode, nao unidades UTF-16.
       const tamanho = Array.from(valor).length;
       if (schema.minLength !== undefined && tamanho < schema.minLength) {

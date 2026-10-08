@@ -92,6 +92,34 @@ time limit"), há duas saídas:
 
 ---
 
+## Painel do administrador e hinos
+
+`https://aventura-das-notas.marcio-zacariass.workers.dev/admin.html`
+
+Só entra quem tem o e-mail em `ADMIN_EMAILS` (`wrangler.jsonc`, separado por
+vírgula). O servidor confere o e-mail a cada chamada, então tirar alguém da
+lista vale na hora. Para quem não é administrador, as rotas `/v1/admin/*`
+respondem 404.
+
+No painel:
+
+- **Nível mínimo:** a partir de qual nível da partida os trechos de hinos
+  começam a aparecer (padrão 3).
+- **Hinos:** número, nome, tom, compasso (com o tipo binário, ternário ou
+  quaternário), andamento e um trecho por clave. Sol lê a voz de cima, Fá o
+  baixo e Dó (viola) o tenor. As notas são digitadas como estão escritas
+  (`mi4 fá4 sol4 sib4`), e o tom aplica a armadura sozinho.
+
+Os hinos ficam **só no banco D1**, nunca no repositório. Cadastre apenas
+conteúdo que você tem direito de usar.
+
+Na partida, depois do nível mínimo, de vez em quando chega um trecho: as notas
+vêm na ordem da melodia, com a armadura na pauta e o letreiro do hino. O ritmo
+não conta, só a nota.
+
+Teste local: `ADMIN_EMAILS=admin-teste@exemplo.com` no `.dev.vars` e
+`node worker/teste-hinos.mjs`.
+
 ## Moderação (denúncias)
 
 Não existe rota de moderação na API. A revisão é feita direto no banco:

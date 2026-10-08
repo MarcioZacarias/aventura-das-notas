@@ -333,6 +333,26 @@
   .inst-btn .claves { display: block; font-weight: normal; font-size: 0.85em; color: #8d6e63; }
   .inst-btn.ativo { border-color: #ff5722; background: #fff3e0; }
   .inst-btn:active { transform: translateY(2px); }
+  /* ===== HINO ===== */
+  .hino-banner {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: calc(100% - 24px);
+    padding: 6px 14px;
+    background: rgba(62, 39, 35, 0.88);
+    color: #fff8e1;
+    border-radius: 12px;
+    text-align: center;
+    pointer-events: none;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+  }
+  .hino-banner.hidden { display: none; }
+  .hino-titulo { font-weight: bold; font-size: clamp(13px, 3.8vw, 16px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hino-detalhes { font-size: clamp(11px, 3.2vw, 13px); opacity: 0.9; }
+  .admin-link { display: inline-block; margin-top: 8px; color: #e64a19; font-weight: bold; }
+  .admin-link.hidden { display: none; }
   .creditos-sons { margin-top: 10px; font-size: 11px !important; color: #a1887f !important; }
 
   .end-buttons {
@@ -703,6 +723,10 @@
   <!-- STAFF AREA -->
   <div class="staff-area" id="staffArea" style="display:none">
     <canvas id="canvas"></canvas>
+    <div class="hino-banner hidden" id="hinoBanner">
+      <div class="hino-titulo"></div>
+      <div class="hino-detalhes"></div>
+    </div>
     <div class="feedback-flash" id="flash"></div>
     <div class="feedback-text" id="feedbackText"></div>
   </div>
@@ -829,6 +853,7 @@
     <!-- Com conta -->
     <div class="bloco-conta hidden" id="contaLogado">
       <p class="conta-explica" id="saudacao"></p>
+      <a class="admin-link hidden" id="adminLink" href="admin.html">⚙️ Painel do administrador</a>
     </div>
 
     <!-- Sempre visivel: funciona com a identidade anonima do aparelho -->
@@ -896,6 +921,7 @@
 <script src="config.js"></script>
 <script src="api.js"></script>
 <script src="instrumentos.js"></script>
+<script src="hinos.js"></script>
 <script src="game.js"></script>
 <script src="ui-conta.js"></script>
 </body>

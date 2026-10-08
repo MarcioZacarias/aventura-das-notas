@@ -19,7 +19,11 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const www = join(root, 'www');
 
 // Arquivos obrigatorios do jogo.
-const REQUIRED = ['index.html', 'game.js', 'config.js', 'api.js', 'ui-conta.js', 'instrumentos.js'];
+const REQUIRED = [
+  'index.html', 'game.js', 'config.js', 'api.js', 'ui-conta.js', 'instrumentos.js', 'hinos.js',
+  // Painel do administrador (so funciona com servidor).
+  'admin.html', 'admin.js',
+];
 // Pastas copiadas inteiras. sons/ = gravacoes dos instrumentos (scripts/baixar-sons.mjs).
 const PASTAS = ['sons'];
 // Arquivos opcionais (copiados se existirem).
@@ -154,14 +158,16 @@ const csp =
   "base-uri 'none'; " +
   "form-action 'none'";
 
-const indexPath = join(www, 'index.html');
-let html = await readFile(indexPath, 'utf8');
-if (!html.includes('Content-Security-Policy')) {
-  html = html.replace(
-    /<meta charset="UTF-8">/i,
-    `<meta charset="UTF-8">\n<meta http-equiv="Content-Security-Policy" content="${csp}">`
-  );
-  await writeFile(indexPath, html, 'utf8');
+for (const pagina of ['index.html', 'admin.html']) {
+  const caminhoPagina = join(www, pagina);
+  let html = await readFile(caminhoPagina, 'utf8');
+  if (!html.includes('Content-Security-Policy')) {
+    html = html.replace(
+      /<meta charset="UTF-8">/i,
+      `<meta charset="UTF-8">\n<meta http-equiv="Content-Security-Policy" content="${csp}">`
+    );
+    await writeFile(caminhoPagina, html, 'utf8');
+  }
 }
 
 console.log(`www/ gerada com ${copied.length} arquivo(s): ${copied.join(', ')}`);
