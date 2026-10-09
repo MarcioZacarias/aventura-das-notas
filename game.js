@@ -349,7 +349,11 @@ const state = {
   // Trecho de hino em andamento: notas que ainda vao nascer e o hino delas.
   hinoFila: [],
   hinoCorrente: null,
-  notasDesdeHino: 0
+  notasDesdeHino: 0,
+  // Hinos so entram depois da mensagem de parabens do nivel minimo.
+  hinosLiberados: false,
+  forcarHino: false,
+  pausado: false
 };
 
 function pickNextNote() {
@@ -409,6 +413,7 @@ function updateGame(dt) {
     state.level = targetLevel;
     document.getElementById('level').textContent = state.level;
     state.spawnInterval = Math.max(900, 2400 - (state.level - 1) * 150);
+    checarLiberacaoHinos();
   }
 }
 
@@ -429,8 +434,9 @@ function dadosHinos() {
 function talvezIniciarHino() {
   const dados = dadosHinos();
   if (!dados || !dados.hinos || !dados.hinos.length) return;
-  if (state.level < (dados.nivel_minimo || 1)) return;
-  if (state.notasDesdeHino < INTERVALO_ENTRE_HINOS || Math.random() > CHANCE_DE_HINO) return;
+  if (!state.hinosLiberados || state.level < (dados.nivel_minimo || 1)) return;
+  // Logo depois dos parabens o primeiro hino vem na hora, sem sorteio.
+  if (!state.forcarHino && (state.notasDesdeHino < INTERVALO_ENTRE_HINOS || Math.random() > CHANCE_DE_HINO)) return;
 
   const clave = state.currentClef;
   const possiveis = dados.hinos.filter(h => h.trechos && h.trechos[clave]);
@@ -448,7 +454,48 @@ function talvezIniciarHino() {
   }
   state.hinoCorrente = hino;
   state.hinoFila = notas;
+  state.forcarHino = false;
 }
+
+/** Ha hinos cadastrados para a clave que esta sendo jogada? */
+function temHinosNaClave() {
+  const dados = dadosHinos();
+  return !!(dados && dados.hinos && dados.hinos.some(h => h.trechos && h.trechos[state.currentClef]));
+}
+
+const liberacaoEl = document.getElementById('hinosLiberados');
+let liberacaoTimer = null;
+
+/**
+ * Chegou ao nivel minimo: pausa, parabeniza e libera os hinos. Uma vez por
+ * partida; so se houver hino cadastrado para a clave.
+ */
+function checarLiberacaoHinos() {
+  if (!liberacaoEl || state.hinosLiberados || !state.running) return;
+  const dados = dadosHinos();
+  if (!dados || state.level < (dados.nivel_minimo || 1) || !temHinosNaClave()) return;
+
+  state.hinosLiberados = true;
+  state.pausado = true;
+  document.getElementById('liberacaoNivel').textContent = state.level;
+  liberacaoEl.classList.remove('hidden');
+  playFx('correct');
+  setTimeout(() => playFx('correct'), 220);
+  clearTimeout(liberacaoTimer);
+  // Se ninguem tocar no botao, a partida segue sozinha.
+  liberacaoTimer = setTimeout(fecharLiberacaoHinos, 7000);
+}
+
+function fecharLiberacaoHinos() {
+  clearTimeout(liberacaoTimer);
+  if (!liberacaoEl || liberacaoEl.classList.contains('hidden')) return;
+  liberacaoEl.classList.add('hidden');
+  state.pausado = false;
+  state.forcarHino = true;
+  // Proxima nota nasce logo, ja como o primeiro hino.
+  state.lastSpawnTime = state.spawnInterval;
+}
+if (liberacaoEl) document.getElementById('liberacaoOkBtn').addEventListener('click', fecharLiberacaoHinos);
 
 /** Hino cujas notas estao na tela (ou ainda vao nascer). */
 function hinoNaTela() {
@@ -493,14 +540,15 @@ function gameLoop(t) {
   if (!state.lastTime) state.lastTime = t;
   const dt = Math.min(50, t - state.lastTime);
   state.lastTime = t;
-  updateGame(dt);
+  // Pausado (mensagem de parabens): as notas ficam paradas onde estao.
+  if (!state.pausado) updateGame(dt);
   render();
   rafId = requestAnimationFrame(gameLoop);
 }
 
 // ===== INPUT =====
 function handleAnswer(buttonId) {
-  if (!state.running) return;
+  if (!state.running || state.pausado) return;
   const layout = getLayout();
   let target = null, bestDist = Infinity;
   for (const n of state.notes) {
@@ -606,6 +654,12 @@ function startGame(clefKey) {
   state.hinoFila = [];
   state.hinoCorrente = null;
   state.notasDesdeHino = 0;
+  state.hinosLiberados = false;
+  state.forcarHino = false;
+  state.pausado = false;
+  if (liberacaoEl) liberacaoEl.classList.add('hidden');
+  // Nivel minimo 1: os parabens aparecem logo no comeco.
+  setTimeout(checarLiberacaoHinos, 600);
   // Atualiza os hinos em segundo plano; a partida usa a copia local.
   if (temHinos && typeof Api !== 'undefined' && Api.estado && Api.estado.ligado) {
     Api.hinos().catch(() => {});
