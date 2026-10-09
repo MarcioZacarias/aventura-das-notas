@@ -104,12 +104,36 @@ const Instrumentos = (() => {
   }
 
   /** Todos os arquivos que um instrumento precisa: [{ amostra, nota }]. */
+  // Extensao da pauta usada pelos hinos: ate duas linhas suplementares acima e
+  // abaixo (mesmos limites de hinos.js). Notas naturais, da mais aguda a mais grave.
+  const LETRAS_NAT = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+  const TOPO_CLAVE = { sol: ['F', 5], fa: ['A', 3], do: ['G', 4] };
+  const EXTENSAO_DA_CLAVE = Object.fromEntries(
+    Object.entries(TOPO_CLAVE).map(([clave, [letra, oit]]) => {
+      const topo = oit * 7 + LETRAS_NAT.indexOf(letra);
+      const notas = [];
+      for (let step = -4; step <= 14; step++) {
+        const d = topo - step;
+        notas.push(LETRAS_NAT[d % 7] + Math.floor(d / 7));
+      }
+      return [clave, notas];
+    })
+  );
+
+  /**
+   * Todos os arquivos que um instrumento pode precisar: [{ amostra, nota }].
+   * Cobre a pauta inteira dos hinos (com linhas suplementares); o jogo normal
+   * usa so as de NOTAS_DA_CLAVE.
+   */
   function arquivosDo(instrumentoId) {
     const inst = POR_ID[instrumentoId];
     if (!inst) return [];
-    return inst.claves.flatMap((clave) =>
-      NOTAS_DA_CLAVE[clave].map((nota) => ({ amostra: inst.amostra, nota: notaSoando(inst.id, nota) }))
-    );
+    const vistos = new Set();
+    return inst.claves
+      .flatMap((clave) => EXTENSAO_DA_CLAVE[clave])
+      .map((nota) => notaSoando(inst.id, nota))
+      .filter((nota) => !vistos.has(nota) && vistos.add(nota))
+      .map((nota) => ({ amostra: inst.amostra, nota }));
   }
 
   // --------------------------------------------------------------- escolha
@@ -222,6 +246,23 @@ const Instrumentos = (() => {
   }
 
   /**
+   * Baixa de antemao as gravacoes de um trecho de hino (notas escritas em
+   * MIDI), para a primeira nota ja sair com o som do instrumento.
+   */
+  function precarregarMidis(ctx, instrumentoId, midisEscritos) {
+    const inst = POR_ID[instrumentoId];
+    if (!inst || !ctx) return Promise.resolve();
+    const notas = arquivosDo(inst.id).map((a) => ({ nota: a.nota, midi: midiDoNome(a.nota) }));
+    const pedidos = new Set();
+    for (const m of midisEscritos) {
+      const alvo = m + inst.transposicao;
+      const perto = notas.reduce((a, b) => (Math.abs(b.midi - alvo) < Math.abs(a.midi - alvo) ? b : a));
+      pedidos.add(perto.nota);
+    }
+    return Promise.all([...pedidos].map((nota) => carregar(ctx, inst.amostra, nota)));
+  }
+
+  /**
    * Toca a nota escrita `nota` no instrumento. Devolve false se a gravacao
    * ainda nao esta pronta, para quem chamou usar o som sintetizado.
    */
@@ -241,7 +282,7 @@ const Instrumentos = (() => {
   // Nota (com bemol, ex. "Eb3") -> MIDI.
   const INDICE = Object.fromEntries(NOMES.map((n, i) => [n, i]));
   const midiDoNome = (nome) => {
-    const m = /^([A-G]b?)(-?d)$/.exec(nome);
+    const m = /^([A-G]b?)(-?\d)$/.exec(nome);
     return 12 * (Number(m[2]) + 1) + INDICE[m[1]];
   };
 
@@ -313,6 +354,7 @@ const Instrumentos = (() => {
     precarregar,
     tocar,
     tocarMidi,
+    precarregarMidis,
     frequenciaMidi,
   };
 })();

@@ -124,6 +124,83 @@ const Hinos = (() => {
       });
   }
 
+  // ------------------------------------------- instrumento transpositor
+  // Os trechos estao em som real (como no hinario do orgao). Um instrumento
+  // transpositor le a partitura dele: tudo escrito |transposicao| semitons
+  // acima, com outra armadura. Semitons -> graus da escala do intervalo.
+  const GRAUS_DO_INTERVALO = { 0: 0, 2: 1, 3: 2, 7: 4, 9: 5, 12: 7, 14: 8, 21: 12 };
+  const CLAVE_DA_VOZ = { sol: 'sol', do: 'do', fa: 'fa' };
+
+  /** Armadura do tom transposto `semitons` acima (em quintas). */
+  function armaduraTransposta(armadura, semitons) {
+    let delta = (((semitons * 7) % 12) + 12) % 12;
+    if (delta > 6) delta -= 12;
+    let nova = armadura + delta;
+    if (nova > 6) nova -= 12;
+    if (nova < -6) nova += 12;
+    return nova;
+  }
+
+  /**
+   * Notas escritas de um trecho para um instrumento, a partir do som real.
+   * `subir` = semitons que a escrita fica acima do som (-transposicao).
+   */
+  function escrever(trecho, armaduraReal, subir, oitavas, claveDestino) {
+    const graus = GRAUS_DO_INTERVALO[subir] !== undefined ? GRAUS_DO_INTERVALO[subir] : Math.round((subir * 7) / 12);
+    const armadura = armaduraTransposta(armaduraReal, subir);
+    const notas = notasDoTrecho(trecho, 'sol', armaduraReal).map((n) => {
+      const real = lerToken(n.id);
+      const dia = diatonico(real.letra, real.oitava) + graus + 7 * oitavas;
+      const letra = LETRAS[((dia % 7) + 7) % 7];
+      const oitava = Math.floor(dia / 7);
+      const midi = n.midi + subir + 12 * oitavas;
+      let alt = midi - (12 * (oitava + 1) + SEMITOM[letra]);
+      alt = Math.max(-1, Math.min(1, alt));
+      const daArmadura = alteracaoDaArmadura(letra, armadura);
+      return {
+        id: letra + oitava,
+        button: BOTAO[letra],
+        label: NOME[letra] + (alt === 1 ? '♯' : alt === -1 ? '♭' : ''),
+        step: TOPO[claveDestino] - diatonico(letra, oitava),
+        midi,
+        acidente: alt === daArmadura ? null : alt === 1 ? '#' : alt === -1 ? 'b' : 'n',
+      };
+    });
+    return { notas, armadura };
+  }
+
+  /**
+   * Escolhe a voz do hino que o instrumento le e devolve as notas ESCRITAS
+   * para ele, na clave em que esta jogando.
+   *   - prefere a voz da propria clave (Sol = de cima, Fa = baixo, Do = tenor)
+   *   - aceita outra voz ou mudar de oitava se a nota sair da pauta
+   * `midi` de cada nota e a nota escrita: instrumentos.js soma a transposicao
+   * e o som sai na altura real do hino.
+   * @returns {{notas, armadura, voz} | null}
+   */
+  function notasParaInstrumento(hino, clave, transposicao) {
+    const subir = -(transposicao || 0);
+    let melhor = null;
+    for (const voz of ['sol', 'do', 'fa']) {
+      const trecho = hino.trechos && hino.trechos[voz];
+      if (!trecho) continue;
+      for (const oitavas of [0, -1, 1]) {
+        const r = escrever(trecho, hino.armadura, subir, oitavas, clave);
+        const fora = r.notas.filter((n) => n.step < STEP_MIN || n.step > STEP_MAX).length;
+        const media = r.notas.reduce((s, n) => s + Math.abs(n.step - 5), 0) / r.notas.length;
+        const custo = fora * 100 + (CLAVE_DA_VOZ[voz] === clave ? 0 : 4) + Math.abs(oitavas) * 6 + media * 0.3;
+        if (!melhor || custo < melhor.custo) melhor = { ...r, voz, custo };
+      }
+    }
+    return melhor;
+  }
+
+  /** Nome do tom para uma armadura (maior, ou menor se o hino e menor). */
+  function nomeDoTom(armadura, menor) {
+    const t = TONS.find((x) => x.armadura === armadura && x.id.endsWith('m') === !!menor);
+    return t ? t.nome : null;
+  }
+
   /** Simbolos da armadura para desenhar: [{ step, simbolo }]. */
   function armaduraNaPauta(clave, armadura) {
     const desloc = DESLOCAMENTO_CLAVE[clave] || 0;
@@ -193,6 +270,9 @@ const Hinos = (() => {
     tom: (id) => TOM_POR_ID[id] || null,
     tipoCompasso,
     notasDoTrecho,
+    notasParaInstrumento,
+    armaduraTransposta,
+    nomeDoTom,
     armaduraNaPauta,
     deTexto,
     paraTexto,

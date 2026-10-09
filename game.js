@@ -303,7 +303,7 @@ function drawStaff(layout) {
   const clefCenterY = noteY(clefDef.centerStep, layout);
   drawClef(clefDef, layout.clefX, clefCenterY, layout.lineSpacing * 4);
   const hino = hinoNaTela();
-  if (hino && hino.armadura) drawArmadura(hino.armadura, layout);
+  if (hino && hino.armaduraEscrita) drawArmadura(hino.armaduraEscrita, layout);
 
   const grad = ctx.createLinearGradient(layout.hitX - 22, 0, layout.hitX + 22, 0);
   grad.addColorStop(0, 'rgba(255, 193, 7, 0)');
@@ -507,28 +507,37 @@ function talvezIniciarHino() {
   if (!state.forcarHino && (state.notasDesdeHino < INTERVALO_ENTRE_HINOS || Math.random() > CHANCE_DE_HINO)) return;
 
   const clave = state.currentClef;
-  const possiveis = dados.hinos.filter(h => h.trechos && h.trechos[clave]);
+  const possiveis = dados.hinos.filter(temAlgumTrecho);
   if (!possiveis.length) return;
   // Evita repetir o mesmo hino em seguida quando ha outro.
   const outros = possiveis.filter(h => !state.hinoCorrente || h.id !== state.hinoCorrente.id);
   const lista = outros.length ? outros : possiveis;
   const hino = lista[Math.floor(Math.random() * lista.length)];
-  let notas;
+  // Notas escritas para o instrumento: voz que cabe na pauta dele e, nos
+  // transpositores, a partitura transposta (o som sai na altura real do hino).
+  const inst = instrumentoAtual() && Instrumentos.porId(instrumentoAtual());
+  let escrito;
   try {
-    notas = Hinos.notasDoTrecho(hino.trechos[clave], clave, hino.armadura);
+    escrito = Hinos.notasParaInstrumento(hino, clave, inst ? inst.transposicao : 0);
   } catch (e) {
     console.warn('Trecho invalido no hino ' + hino.numero, e);
     return;
   }
-  state.hinoCorrente = hino;
-  state.hinoFila = notas;
+  if (!escrito || !escrito.notas.length) return;
+  state.hinoCorrente = Object.assign({}, hino, { armaduraEscrita: escrito.armadura, voz: escrito.voz });
+  state.hinoFila = escrito.notas;
+  if (inst) {
+    try { Instrumentos.precarregarMidis(getAudioCtx(), inst.id, escrito.notas.map(n => n.midi)); } catch (e) { /* sem audio */ }
+  }
   state.forcarHino = false;
 }
 
-/** Ha hinos cadastrados para a clave que esta sendo jogada? */
+const temAlgumTrecho = h => !!(h.trechos && (h.trechos.sol || h.trechos.fa || h.trechos.do));
+
+/** Ha hinos cadastrados? (qualquer voz serve: o jogo escolhe a que cabe na clave) */
 function temHinosNaClave() {
   const dados = dadosHinos();
-  return !!(dados && dados.hinos && dados.hinos.some(h => h.trechos && h.trechos[state.currentClef]));
+  return !!(dados && dados.hinos && dados.hinos.some(temAlgumTrecho));
 }
 
 const liberacaoEl = document.getElementById('hinosLiberados');
@@ -584,8 +593,14 @@ function atualizarBannerHino() {
     return;
   }
   const tom = Hinos.tom(hino.tom);
+  let nomeTom = tom ? tom.nome : hino.tom;
+  // Transpositor: mostra tambem o tom da partitura dele.
+  if (hino.armaduraEscrita !== undefined && hino.armaduraEscrita !== hino.armadura) {
+    const escrito = Hinos.nomeDoTom(hino.armaduraEscrita, /m$/.test(hino.tom));
+    if (escrito) nomeTom += ' (no seu instrumento: ' + escrito + ')';
+  }
   const partes = [
-    tom ? tom.nome : hino.tom,
+    nomeTom,
     Hinos.tipoCompasso(hino.compasso) + ' (' + hino.compasso + ')'
   ];
   if (hino.andamento) partes.push('♩ = ' + hino.andamento);
