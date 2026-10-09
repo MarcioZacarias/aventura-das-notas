@@ -70,13 +70,81 @@ const CLEFS = {
 let audioCtx = null;
 let muted = false;
 
+// iPhone/iPad: o Safari trata o som da pagina como "ambiente" e o silencia
+// quando a chave lateral de silencioso esta ligada. Pedimos a categoria de
+// reproducao de midia: pela API nova (Safari 17+) e, nos anteriores, tocando
+// em loop um <audio> mudo, que leva a sessao inteira para "reproducao".
+try {
+  if (navigator.audioSession) navigator.audioSession.type = 'playback';
+} catch (e) { /* sem suporte */ }
+
+let audioMudo = null;
+function wavMudo() {
+  // 0,5 s de silencio, 8 kHz, 8 bits mono.
+  const amostras = 4000;
+  const bytes = new Uint8Array(44 + amostras);
+  const v = new DataView(bytes.buffer);
+  const txt = (pos, s) => { for (let i = 0; i < s.length; i++) bytes[pos + i] = s.charCodeAt(i); };
+  txt(0, 'RIFF'); v.setUint32(4, 36 + amostras, true); txt(8, 'WAVE');
+  txt(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true);
+  txt(36, 'data'); v.setUint32(40, amostras, true);
+  bytes.fill(128, 44);
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return 'data:audio/wav;base64,' + btoa(bin);
+}
+
+function manterSessaoDeMidia() {
+  try {
+    if (!audioMudo) {
+      audioMudo = new Audio(wavMudo());
+      audioMudo.loop = true;
+      audioMudo.setAttribute('playsinline', '');
+      audioMudo.volume = 0;
+    }
+    if (audioMudo.paused) {
+      const p = audioMudo.play();
+      if (p && p.catch) p.catch(() => {});
+    }
+  } catch (e) { /* nao critico */ }
+}
+
 function getAudioCtx() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+  // 'suspended' (antes do primeiro toque) ou 'interrupted' (Safari, depois de
+  // trocar de app/bloquear a tela): os dois precisam de resume.
+  if (audioCtx.state !== 'running') {
+    const p = audioCtx.resume();
+    if (p && p.catch) p.catch(() => {});
+  }
   return audioCtx;
 }
+
+/**
+ * Desbloqueio do audio no iOS: precisa acontecer DENTRO de um toque. Toca um
+ * som vazio de 1 amostra e liga a sessao de midia.
+ */
+function desbloquearAudio() {
+  try {
+    const c = getAudioCtx();
+    const buf = c.createBuffer(1, 1, 22050);
+    const src = c.createBufferSource();
+    src.buffer = buf;
+    src.connect(c.destination);
+    src.start(0);
+  } catch (e) { /* sem audio */ }
+  manterSessaoDeMidia();
+}
+['touchend', 'click', 'keydown'].forEach(ev =>
+  document.addEventListener(ev, desbloquearAudio, { passive: true })
+);
+// Voltou para a aba/app: o Safari pode ter interrompido o audio.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && audioCtx) getAudioCtx();
+});
 
 function playNote(freq, duration) {
   if (muted) return;
