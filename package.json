@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node scripts/dev-server.mjs",
     "build": "node scripts/build-www.mjs",
-    "build:cloudflare": "node scripts/build-www.mjs --api-base https://aventura-das-notas.marcio-zacariass.workers.dev",
+    "build:cloudflare": "node scripts/build-www.mjs --api-base auto",
     "sync": "npm run build && cap sync android",
     "apk": "npm run sync && node scripts/build-android.mjs debug",
     "aab": "npm run sync && node scripts/build-android.mjs release",

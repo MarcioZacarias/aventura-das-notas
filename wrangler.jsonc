@@ -41,7 +41,7 @@
 
   // JWT_SECRET NAO fica aqui: e secret (npx wrangler secret put JWT_SECRET).
   "vars": {
-    "CORS_ORIGINS": "https://localhost,capacitor://localhost,https://aventura-das-notas.marcio-zacariass.workers.dev",
+    "CORS_ORIGINS": "https://localhost,capacitor://localhost,https://aventura-das-notas.marcio-zacariass.workers.dev,https://www.aventuradasnotas.com.br,https://aventuradasnotas.com.br",
     "RANKING_MOSTRA_APELIDOS": "true",
     "RANKING_TAMANHO_TOPO": "10",
     // Contas com acesso ao painel do administrador (/admin.html), separadas por virgula.

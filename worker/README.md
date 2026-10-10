@@ -2,7 +2,7 @@
 
 O Worker `aventura-das-notas` serve **o jogo e a API no mesmo endereço**:
 
-- `https://aventura-das-notas.marcio-zacariass.workers.dev/` → jogo (pasta `www/`, gerada no build)
+- `https://www.aventuradasnotas.com.br/` (e o `workers.dev`) → jogo (pasta `www/`, gerada no build)
 - `.../health` e `.../v1/*` → API (`worker/src`), com banco **D1** (SQLite gerenciado)
 
 O **GitHub Pages não é afetado**: ele continua servindo os arquivos da raiz do
@@ -94,7 +94,7 @@ time limit"), há duas saídas:
 
 ## Painel do administrador e hinos
 
-`https://aventura-das-notas.marcio-zacariass.workers.dev/admin.html`
+`https://www.aventuradasnotas.com.br/admin`
 
 Só entra quem tem o e-mail em `ADMIN_EMAILS` (`wrangler.jsonc`, separado por
 vírgula). O servidor confere o e-mail a cada chamada, então tirar alguém da
@@ -148,3 +148,10 @@ O D1 tem **Time Travel**: restaura o banco para qualquer minuto dos últimos 7 d
 npx wrangler d1 time-travel info DB
 npx wrangler d1 export DB --remote --output backup.sql   # cópia completa
 ```
+
+## Domínio próprio
+
+A versão web usa `apiBase: 'auto'`: chama a API no mesmo endereço em que foi
+aberta, então qualquer domínio ligado ao Worker funciona sem mudar código.
+O APK usa URL completa (`API_BASE=https://www.aventuradasnotas.com.br npm run sync`),
+e a origem dele (`https://localhost`) já está em `CORS_ORIGINS`.

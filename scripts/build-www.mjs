@@ -123,8 +123,10 @@ if (exigirLogin && !apiBase) {
 }
 
 // Origem (esquema + host + porta) do apiBase, para entrar na CSP.
+// apiBase 'auto' = mesma origem da pagina (versao web servida pelo Worker):
+// 'self' na CSP ja cobre.
 let apiOrigem = '';
-if (apiBase) {
+if (apiBase && apiBase !== 'auto') {
   try {
     apiOrigem = new URL(apiBase).origin;
   } catch {

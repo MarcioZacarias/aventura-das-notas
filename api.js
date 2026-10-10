@@ -19,7 +19,13 @@
 
 const Api = (() => {
   const cfg = (typeof window !== 'undefined' && window.AVENTURA_CONFIG) || {};
-  const BASE = String(cfg.apiBase || '').replace(/\/+$/, '');
+  // 'auto': a API e servida no mesmo endereco da pagina (versao web no
+  // Cloudflare). Funciona em qualquer dominio apontado para o Worker. O app
+  // nativo (Capacitor, origem https://localhost) usa sempre URL completa.
+  const BASE = (cfg.apiBase === 'auto' && typeof location !== 'undefined'
+    ? location.origin
+    : String(cfg.apiBase || '')
+  ).replace(/\/+$/, '');
 
   const K = {
     dispositivo: 'adn.dispositivo',
