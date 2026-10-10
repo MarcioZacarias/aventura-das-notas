@@ -379,6 +379,29 @@
   .hino-detalhes { font-size: clamp(11px, 3.2vw, 13px); opacity: 0.9; }
   .admin-link { display: inline-block; margin-top: 8px; color: #e64a19; font-weight: bold; }
   .admin-link.hidden { display: none; }
+  /* ===== QUIZ ===== */
+  #quizScreen { background: linear-gradient(180deg, #fff7e0 0%, #ffe4c0 100%); justify-content: center; }
+  .quiz-cartao { width: 100%; max-width: 420px; display: flex; flex-direction: column; align-items: center; }
+  .quiz-topo { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .quiz-contador { font-size: 14px; color: #8d6e63; font-weight: bold; }
+  .quiz-pular { background: none; border: none; color: #8d6e63; font-family: inherit; font-size: 14px; text-decoration: underline; cursor: pointer; }
+  .quiz-fase { font-size: 13px; color: #e64a19; font-weight: bold; margin-bottom: 4px; min-height: 1em; }
+  .quiz-mascote { font-size: clamp(36px, 10vw, 52px) !important; margin-bottom: 2px !important; }
+  .quiz-pergunta { font-size: clamp(17px, 5vw, 22px) !important; color: #4e342e !important; margin-bottom: 14px !important; line-height: 1.3; }
+  .quiz-opcoes { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+  .quiz-opcao {
+    width: 100%; background: #fff; border: 2px solid #ffcc80; border-radius: 14px;
+    padding: 12px 14px; font-family: inherit; font-size: clamp(14px, 4vw, 17px); font-weight: bold;
+    color: #4e342e; text-align: left; cursor: pointer; line-height: 1.3;
+  }
+  .quiz-opcao:active:not(:disabled) { transform: translateY(2px); }
+  .quiz-opcao.certa { border-color: #2e7d32; background: #e8f5e9; }
+  .quiz-opcao.errada { border-color: #c62828; background: #ffebee; }
+  .quiz-opcao:disabled { cursor: default; }
+  .quiz-explicacao { margin-top: 12px !important; padding: 10px 12px; border-radius: 12px; background: #fff; text-align: left; }
+  .quiz-explicacao.ok { border-left: 5px solid #2e7d32; }
+  .quiz-explicacao.erro { border-left: 5px solid #c62828; }
+  .quiz-explicacao.hidden, #quizProximaBtn.hidden { display: none; }
   .creditos-sons { margin-top: 10px; font-size: 11px !important; color: #a1887f !important; }
 
   .end-buttons {
@@ -816,6 +839,22 @@
     <p class="creditos-sons">Sons dos instrumentos: FluidR3_GM (Frank Wen), licença CC BY 3.0</p>
   </div>
 
+  <!-- QUIZ DO METODO (MSA), antes da partida. Montado por quiz.js. -->
+  <div class="screen rolavel hidden" id="quizScreen">
+    <div class="quiz-cartao">
+      <div class="quiz-topo">
+        <span class="quiz-contador" id="quizContador"></span>
+        <button class="quiz-pular" id="quizPularBtn" type="button">Pular ➜</button>
+      </div>
+      <div class="quiz-fase" id="quizFase"></div>
+      <div class="mascot quiz-mascote">🧠</div>
+      <h2 class="quiz-pergunta" id="quizPergunta"></h2>
+      <div class="quiz-opcoes" id="quizOpcoes"></div>
+      <p class="quiz-explicacao hidden" id="quizExplicacao"></p>
+      <button class="play-btn hidden" id="quizProximaBtn" type="button">Próxima ➜</button>
+    </div>
+  </div>
+
   <!-- ESCOLHA DO INSTRUMENTO (montada por game.js a partir de instrumentos.js) -->
   <div class="screen rolavel hidden" id="instrumentoScreen">
     <div class="conta-topo">
@@ -958,6 +997,8 @@
 <script src="api.js"></script>
 <script src="instrumentos.js"></script>
 <script src="hinos.js"></script>
+<script src="quiz-perguntas.js"></script>
+<script src="quiz.js"></script>
 <script src="game.js"></script>
 <script src="ui-conta.js"></script>
 </body>

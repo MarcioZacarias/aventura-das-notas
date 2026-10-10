@@ -915,7 +915,10 @@ if (temInstrumentos) {
 document.querySelectorAll('.clef-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     getAudioCtx();
-    startGame(btn.dataset.clef);
+    const clave = btn.dataset.clef;
+    // Quiz do metodo (MSA) antes de cada partida; sem quiz.js, joga direto.
+    if (typeof Quiz !== 'undefined') Quiz.abrir(() => startGame(clave));
+    else startGame(clave);
   });
 });
 document.getElementById('restartBtn').addEventListener('click', () => startGame());

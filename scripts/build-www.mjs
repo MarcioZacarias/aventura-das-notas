@@ -21,6 +21,7 @@ const www = join(root, 'www');
 // Arquivos obrigatorios do jogo.
 const REQUIRED = [
   'index.html', 'game.js', 'config.js', 'api.js', 'ui-conta.js', 'instrumentos.js', 'hinos.js',
+  'quiz.js', 'quiz-perguntas.js',
   // Painel do administrador (so funciona com servidor).
   'admin.html', 'admin.js',
 ];
