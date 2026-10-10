@@ -5,7 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Aventura das Notas - Violino</title>
+<title>Aventura das Notas</title>
+<meta name="description" content="Jogo para aprender a ler notas musicais nas claves de Sol, Fá e Dó.">
+<meta name="theme-color" content="#ef6a3e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icones/favicon-32.png">
+<link rel="apple-touch-icon" href="icones/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Aventura Notas">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
   * {
     margin: 0;
@@ -379,6 +386,69 @@
   .hino-detalhes { font-size: clamp(11px, 3.2vw, 13px); opacity: 0.9; }
   .admin-link { display: inline-block; margin-top: 8px; color: #e64a19; font-weight: bold; }
   .admin-link.hidden { display: none; }
+  /* ===== SUGESTOES ===== */
+  .sugestao-canto {
+    position: absolute;
+    top: calc(env(safe-area-inset-top) + 10px);
+    left: 12px;
+    z-index: 12;
+  }
+  .sugestao-btn {
+    position: relative;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(255,255,255,0.75);
+    border: 2px solid #ffd54f;
+    color: #8d6e63;
+    font-family: inherit; font-weight: bold; font-size: 13px;
+    padding: 7px 12px; border-radius: 20px; cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  }
+  .sugestao-btn.hidden, .sugestao-ponto.hidden, .sugestao-festa.hidden, .sugestao-resposta.hidden { display: none; }
+  .sugestao-ponto {
+    position: absolute; top: -3px; right: -3px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #e53935; border: 2px solid #fff;
+  }
+  #sugestaoScreen { background: linear-gradient(180deg, #fff7e0 0%, #ffe4c0 100%); }
+  .sugestao-cartao { width: 100%; max-width: 420px; text-align: left; }
+  #inSugestao {
+    width: 100%; margin-top: 8px; padding: 10px; font-family: inherit; font-size: 15px;
+    border: 2px solid #ffcc80; border-radius: 12px; resize: vertical; background: #fffdf7; color: #4e342e;
+  }
+  #inSugestao:focus { outline: none; border-color: #ff7043; }
+  .sugestao-rodape { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+  #sugestaoContador { font-size: 12px; color: #a1887f; }
+  .sugestao-item { border-top: 1px solid #ffe0b2; padding: 10px 0; }
+  .sugestao-item:first-child { border-top: none; }
+  .sugestao-item.novidade { background: #fff8e1; margin: 0 -10px; padding: 10px; border-radius: 10px; }
+  .sugestao-topo-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .sugestao-estado { font-size: 12px; font-weight: bold; padding: 3px 9px; border-radius: 999px; background: #eceff1; color: #546e7a; }
+  .sugestao-estado.avaliacao { background: #e3f2fd; color: #1565c0; }
+  .sugestao-estado.aceita { background: #fff3e0; color: #e65100; }
+  .sugestao-estado.implementada { background: #e8f5e9; color: #2e7d32; }
+  .sugestao-estado.recusada { background: #f5f5f5; color: #757575; }
+  .sugestao-data { font-size: 12px; color: #a1887f; }
+  .sugestao-texto { margin: 6px 0 0 !important; color: #4e342e !important; font-size: 14px !important; white-space: pre-wrap; word-break: break-word; }
+  .sugestao-resposta { margin: 6px 0 0 !important; font-size: 13px !important; color: #6d4c41 !important; font-style: italic; }
+  .sugestao-festa {
+    position: fixed; inset: 0; z-index: 30;
+    display: flex; align-items: center; justify-content: center; padding: 16px;
+    background: rgba(255, 248, 225, 0.88);
+  }
+  .sugestao-festa-texto { font-style: italic; color: #4e342e !important; word-break: break-word; }
+  .sugestao-festa-mais { font-size: 13px !important; }
+  .sugestao-link { display: block; margin: 10px auto 0; background: none; border: none; color: #e64a19; text-decoration: underline; font-family: inherit; font-size: 14px; cursor: pointer; }
+
+  /* ===== INSTALAR (PWA) ===== */
+  .instalar-btn {
+    margin-top: 12px;
+    background: #fff; border: 2px solid #ef6a3e; color: #e64a19;
+    font-family: inherit; font-weight: bold; font-size: 14px;
+    padding: 8px 16px; border-radius: 999px; cursor: pointer;
+  }
+  .instalar-btn.hidden { display: none; }
+  .ios-share { display: inline-block; border: 1.5px solid currentColor; border-radius: 4px; padding: 0 4px; font-size: 12px; }
+
   /* ===== QUIZ ===== */
   #quizScreen { background: linear-gradient(180deg, #fff7e0 0%, #ffe4c0 100%); justify-content: center; }
   .quiz-cartao { width: 100%; max-width: 420px; display: flex; flex-direction: column; align-items: center; }
@@ -803,6 +873,11 @@
 
   <!-- START SCREEN -->
   <div class="screen" id="startScreen">
+    <div class="sugestao-canto">
+      <button class="sugestao-btn hidden" id="abrirSugestaoBtn" type="button" aria-label="Enviar sugestão">
+        💡 <span>Sugestão</span><span class="sugestao-ponto hidden" id="sugestaoPonto"></span>
+      </button>
+    </div>
     <div class="conta-topo">
       <button class="conta-btn hidden" id="abrirContaBtn">
         <span id="contaLabel">Entrar</span> 👤
@@ -836,7 +911,55 @@
       ⚡ A velocidade aumenta conforme você acerta<br>
       ❤ Você tem 3 vidas — não erre demais!
     </div>
+    <button class="instalar-btn hidden" id="instalarBtn" type="button">📲 Instalar como app</button>
     <p class="creditos-sons">Sons dos instrumentos: FluidR3_GM (Frank Wen), licença CC BY 3.0</p>
+  </div>
+
+  <!-- SUGESTOES (sugestoes.js) -->
+  <div class="screen rolavel hidden" id="sugestaoScreen">
+    <div class="conta-cabecalho">
+      <button class="voltar-btn" id="sugestaoVoltarBtn" aria-label="Voltar">&larr;</button>
+      <h1>💡 Sugestões</h1>
+    </div>
+    <div class="cartao sugestao-cartao">
+      <p class="conta-explica">Tem uma ideia para deixar o jogo melhor? Conte pra gente!
+        Toda sugestão é lida. Se ela for feita, você vai ver aqui. 🎶</p>
+      <textarea id="inSugestao" maxlength="1000" rows="4" placeholder="Escreva sua ideia aqui…"></textarea>
+      <div class="sugestao-rodape">
+        <span id="sugestaoContador">0/1000</span>
+        <button class="mini-btn" id="enviarSugestaoBtn" type="button">Enviar</button>
+      </div>
+      <p class="msg" id="sugestaoMsg"></p>
+    </div>
+    <div class="cartao sugestao-cartao">
+      <h3>Minhas sugestões</h3>
+      <div id="listaSugestoes"></div>
+    </div>
+  </div>
+
+  <!-- Aviso: sugestao implementada -->
+  <div class="sugestao-festa hidden" id="sugestaoFesta" role="dialog" aria-live="assertive">
+    <div class="liberacao-cartao">
+      <div class="liberacao-icone">🎉💡</div>
+      <h2>Sua sugestão virou realidade!</h2>
+      <p>Obrigado! A ideia que você enviou foi aceita e <strong>já está no jogo</strong>:</p>
+      <p class="sugestao-festa-texto" id="sugestaoFestaTexto"></p>
+      <p class="sugestao-resposta" id="sugestaoFestaResposta"></p>
+      <p class="sugestao-festa-mais" id="sugestaoFestaMais"></p>
+      <button class="play-btn" id="sugestaoFestaOk" type="button">Que legal! 🎶</button>
+      <button class="sugestao-link" id="sugestaoFestaVer" type="button">Ver minhas sugestões</button>
+    </div>
+  </div>
+
+  <!-- Passo a passo de instalacao (iPhone e navegadores sem botao) -->
+  <div class="sugestao-festa hidden" id="instalarDica" role="dialog">
+    <div class="liberacao-cartao">
+      <div class="liberacao-icone">📲</div>
+      <h2>Instalar o jogo</h2>
+      <p id="instalarPassos"></p>
+      <p>Pronto! O ícone do <strong>Aventura das Notas</strong> aparece na tela do celular.</p>
+      <button class="play-btn" id="instalarDicaOk" type="button">Entendi</button>
+    </div>
   </div>
 
   <!-- QUIZ DO METODO (MSA), antes da partida. Montado por quiz.js. -->
@@ -999,6 +1122,8 @@
 <script src="hinos.js"></script>
 <script src="quiz-perguntas.js"></script>
 <script src="quiz.js"></script>
+<script src="sugestoes.js"></script>
+<script src="instalar.js"></script>
 <script src="game.js"></script>
 <script src="ui-conta.js"></script>
 </body>

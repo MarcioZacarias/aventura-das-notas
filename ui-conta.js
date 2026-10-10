@@ -162,6 +162,8 @@
       .then(() => renderizar())
       .catch(() => {});
     Api.hinos().catch(() => {});
+    // Avisa se alguma sugestao da pessoa foi implementada.
+    if (typeof Sugestoes !== 'undefined') Sugestoes.verificar().catch(() => {});
   }
 
   // ------------------------------------------------------------ modo do form

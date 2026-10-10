@@ -500,6 +500,28 @@ const Api = (() => {
 
   const hinosEmCache = () => ler(K.hinos, null);
 
+  // -------------------------------------------------------------- sugestoes
+  async function enviarSugestao(texto) {
+    const jog = jogadorAtual();
+    const r = await autenticado('POST', '/v1/sugestoes', {
+      texto,
+      ...(jog && jog.apelido ? { apelido: jog.apelido } : {}),
+    });
+    if (!r.ok) return { ok: false, erro: r.dados?.erro || `Falha (${r.status})` };
+    return { ok: true, sugestao: r.dados.sugestao };
+  }
+
+  async function minhasSugestoes() {
+    if (!estado.ligado || exigeLoginSemSessao()) return null;
+    const r = await autenticado('GET', '/v1/sugestoes');
+    return r.ok ? r.dados.sugestoes : null;
+  }
+
+  async function marcarSugestoesVistas() {
+    if (!estado.ligado || exigeLoginSemSessao()) return;
+    await autenticado('POST', '/v1/sugestoes/vistas');
+  }
+
   /** Chamada do painel do administrador: { ok, status, dados }. */
   async function admin(metodo, caminho, corpo) {
     return autenticado(metodo, `/v1/admin${caminho}`, corpo);
@@ -651,6 +673,9 @@ const Api = (() => {
     eu,
     hinos,
     hinosEmCache,
+    enviarSugestao,
+    minhasSugestoes,
+    marcarSugestoesVistas,
     admin,
     listarJogadores,
     criarJogador,

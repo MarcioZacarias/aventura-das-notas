@@ -85,6 +85,12 @@
   .acoes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
   .check { display: flex; align-items: center; gap: 8px; font-weight: bold; }
   .check input { width: auto; }
+  .sug { border: 2px solid #ffe0b2; border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+  .sug-topo { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--suave); }
+  .sug-texto { margin: 8px 0; white-space: pre-wrap; word-break: break-word; }
+  .sug-acoes { display: grid; grid-template-columns: 180px 1fr auto; gap: 8px; align-items: start; }
+  @media (max-width: 600px) { .sug-acoes { grid-template-columns: 1fr; } }
+  .sug textarea { min-height: 40px; font-family: inherit; }
 </style>
 </head>
 <body>
@@ -136,6 +142,27 @@
         as notas vêm na ordem da melodia, com o nome, o tom e o compasso na tela.
         O nível sobe a cada 8 acertos.</p>
       <p class="msg" id="configMsg"></p>
+    </section>
+
+    <!-- Sugestoes dos usuarios -->
+    <section class="cartao" id="blocoSugestoes">
+      <div class="linha" style="justify-content: space-between; margin-bottom: 10px;">
+        <h2 style="margin: 0;">💡 Sugestões dos usuários</h2>
+        <div style="flex: 0 0 200px;">
+          <select id="filtroSugestao">
+            <option value="">Todas</option>
+            <option value="recebida">Recebidas</option>
+            <option value="em_avaliacao">Em avaliação</option>
+            <option value="aceita">Aceitas</option>
+            <option value="implementada">Implementadas</option>
+            <option value="recusada">Recusadas</option>
+          </select>
+        </div>
+      </div>
+      <p class="ajuda" style="margin-bottom: 10px;">Ao marcar como <strong>Implementada</strong>, quem sugeriu
+        recebe um aviso de comemoração no jogo. A resposta (opcional) aparece para o autor.</p>
+      <div id="listaSugestoesAdmin"></div>
+      <p class="msg" id="sugestoesMsg"></p>
     </section>
 
     <!-- Lista -->

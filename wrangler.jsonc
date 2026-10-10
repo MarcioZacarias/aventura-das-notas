@@ -36,7 +36,8 @@
     { "name": "LIMITE_AUTH",     "namespace_id": "1002", "simple": { "limit": 10,  "period": 60 } },
     { "name": "LIMITE_PARTIDAS", "namespace_id": "1003", "simple": { "limit": 120, "period": 60 } },
     { "name": "LIMITE_TURMA",    "namespace_id": "1004", "simple": { "limit": 5,   "period": 60 } },
-    { "name": "LIMITE_DENUNCIA", "namespace_id": "1005", "simple": { "limit": 2,   "period": 60 } }
+    { "name": "LIMITE_DENUNCIA", "namespace_id": "1005", "simple": { "limit": 2,   "period": 60 } },
+    { "name": "LIMITE_SUGESTAO", "namespace_id": "1006", "simple": { "limit": 3,   "period": 60 } }
   ],
 
   // JWT_SECRET NAO fica aqui: e secret (npx wrangler secret put JWT_SECRET).

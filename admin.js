@@ -58,6 +58,7 @@
     mostrar('painel', true);
     montarSelects();
     carregarConfig();
+    carregarSugestoes();
     carregarHinos();
   }
 
@@ -330,6 +331,78 @@
     await carregarHinos();
     msg(el('listaMsg'), 'Hino excluído.', 'ok');
   });
+
+  // ------------------------------------------------------------ sugestoes
+  const ESTADOS_SUG = [
+    ['recebida', 'Recebida'],
+    ['em_avaliacao', 'Em avaliação'],
+    ['aceita', 'Aceita'],
+    ['implementada', 'Implementada ✅'],
+    ['recusada', 'Recusada'],
+  ];
+
+  async function carregarSugestoes() {
+    const filtro = el('filtroSugestao').value;
+    msg(el('sugestoesMsg'), 'Carregando…');
+    const r = await Api.admin('GET', '/sugestoes' + (filtro ? '?estado=' + filtro : '')).catch(() => null);
+    if (!r || !r.ok) {
+      msg(el('sugestoesMsg'), erroDe(r, 'Não foi possível carregar as sugestões.'), 'erro');
+      return;
+    }
+    const alvo = el('listaSugestoesAdmin');
+    alvo.innerHTML = '';
+    const lista = r.dados.sugestoes;
+    msg(el('sugestoesMsg'), lista.length ? '' : 'Nenhuma sugestão por aqui.');
+    for (const s of lista) {
+      const card = document.createElement('div');
+      card.className = 'sug';
+      const topo = document.createElement('div');
+      topo.className = 'sug-topo';
+      const quem = document.createElement('span');
+      quem.textContent = '#' + s.id + ' · ' + s.autor_nome + (s.apelido ? ' (jogador: ' + s.apelido + ')' : '');
+      const quando = document.createElement('span');
+      quando.textContent = new Date(s.criado_em).toLocaleString('pt-BR');
+      topo.append(quem, quando);
+      const texto = document.createElement('p');
+      texto.className = 'sug-texto';
+      texto.textContent = s.texto;
+
+      const acoes = document.createElement('div');
+      acoes.className = 'sug-acoes';
+      const sel = document.createElement('select');
+      for (const [v, t] of ESTADOS_SUG) {
+        const o = document.createElement('option');
+        o.value = v;
+        o.textContent = t;
+        sel.appendChild(o);
+      }
+      sel.value = s.estado;
+      const resp = document.createElement('textarea');
+      resp.maxLength = 500;
+      resp.placeholder = 'Resposta para o autor (opcional)';
+      resp.value = s.resposta || '';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'pequeno';
+      btn.textContent = 'Salvar';
+      const aviso = document.createElement('p');
+      aviso.className = 'msg';
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        const rr = await Api.admin('PATCH', '/sugestoes/' + s.id, { estado: sel.value, resposta: resp.value }).catch(() => null);
+        btn.disabled = false;
+        if (rr && rr.ok) {
+          msg(aviso, sel.value === 'implementada' ? 'Salvo! O autor vai receber o aviso no jogo. 🎉' : 'Salvo!', 'ok');
+        } else {
+          msg(aviso, erroDe(rr, 'Não foi possível salvar.'), 'erro');
+        }
+      });
+      acoes.append(sel, resp, btn);
+      card.append(topo, texto, acoes, aviso);
+      alvo.appendChild(card);
+    }
+  }
+  el('filtroSugestao').addEventListener('change', carregarSugestoes);
 
   iniciar();
 })();

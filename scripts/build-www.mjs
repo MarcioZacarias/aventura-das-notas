@@ -21,14 +21,16 @@ const www = join(root, 'www');
 // Arquivos obrigatorios do jogo.
 const REQUIRED = [
   'index.html', 'game.js', 'config.js', 'api.js', 'ui-conta.js', 'instrumentos.js', 'hinos.js',
-  'quiz.js', 'quiz-perguntas.js',
+  'quiz.js', 'quiz-perguntas.js', 'sugestoes.js',
+  // App instalavel (PWA)
+  'instalar.js', 'sw.js', 'manifest.webmanifest',
   // Painel do administrador (so funciona com servidor).
   'admin.html', 'admin.js',
 ];
 // Pastas copiadas inteiras. sons/ = gravacoes dos instrumentos (scripts/baixar-sons.mjs).
-const PASTAS = ['sons'];
+const PASTAS = ['sons', 'icones'];
 // Arquivos opcionais (copiados se existirem).
-const OPTIONAL = ['manifest.webmanifest', 'favicon.ico'];
+const OPTIONAL = ['favicon.ico'];
 
 const missing = REQUIRED.filter((f) => !existsSync(join(root, f)));
 if (missing.length) {

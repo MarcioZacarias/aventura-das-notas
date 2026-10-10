@@ -20,6 +20,7 @@ import rotasRanking from './routes/ranking.js';
 import rotasTurmas from './routes/turmas.js';
 import rotasDenuncias from './routes/denuncias.js';
 import rotasHinos from './routes/hinos.js';
+import rotasSugestoes from './routes/sugestoes.js';
 
 /**
  * Cada rota e { metodo, caminho, handler } mais, opcionalmente:
@@ -43,6 +44,7 @@ const ROTAS = [
   ...rotasTurmas,
   ...rotasDenuncias,
   ...rotasHinos,
+  ...rotasSugestoes,
 ].map((rota) => ({
   ...rota,
   // '/v1/jogadores/:id' -> /^\/v1\/jogadores\/(?<id>[^/]+)$/

@@ -1,0 +1,17 @@
+{
+  "name": "Aventura das Notas",
+  "short_name": "Aventura Notas",
+  "description": "Jogo para aprender a ler notas musicais nas claves de Sol, Fá e Dó.",
+  "lang": "pt-BR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff7e0",
+  "theme_color": "#ef6a3e",
+  "icons": [
+    { "src": "icones/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icones/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icones/icone-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
