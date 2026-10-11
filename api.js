@@ -211,8 +211,12 @@ const Api = (() => {
     return r.dados.access_token;
   }
 
-  /** Garante que existe um jogador (perfil) e devolve o id. */
-  async function garantirJogador(apelidoPadrao = 'Eu') {
+  /**
+   * Garante que existe um jogador (perfil). Numa conta, o primeiro perfil
+   * nasce com o nome do titular (o servidor preenche quando o apelido nao vem);
+   * a pessoa pode trocar depois em "Minha conta".
+   */
+  async function garantirJogador(apelidoPadrao) {
     const local = ler(K.jogador);
     if (local?.id) return local.id;
 
@@ -223,7 +227,7 @@ const Api = (() => {
     }
 
     const criado = await autenticado('POST', '/v1/jogadores', {
-      apelido: apelidoPadrao,
+      ...(apelidoPadrao ? { apelido: apelidoPadrao } : {}),
       avatar: 'musica',
     });
     if (!criado.ok) throw new Error(`nao foi possivel criar o jogador (${criado.status})`);

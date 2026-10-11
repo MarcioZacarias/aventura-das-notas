@@ -6,7 +6,18 @@ import { json, falha } from '../http.js';
 import { executar, primeiro, todos } from '../db.js';
 import { colunaDono, exigirJogador } from '../lib/acesso.js';
 import { sha256Hex } from '../lib/cripto.js';
-import { validarApelido } from '../../../server/src/lib/apelido.js';
+import { apelidoDoNome, validarApelido } from '../../../server/src/lib/apelido.js';
+
+// Nome generico que versoes antigas do app davam ao primeiro perfil.
+const APELIDO_GENERICO = 'Eu';
+// Nomes automaticos: ao entrar numa conta, viram o nome do titular.
+const APELIDOS_AUTOMATICOS = [APELIDO_GENERICO, 'Jogador'];
+
+/** Apelido inicial de um perfil de conta: o nome do titular. */
+async function apelidoDaConta(db, contaId) {
+  const conta = await primeiro(db, 'select nome from contas where id = ?', contaId);
+  return apelidoDoNome(conta && conta.nome);
+}
 
 const MAX_JOGADORES = 10;
 
@@ -40,7 +51,6 @@ export default [
     auth: true,
     corpo: {
       type: 'object',
-      required: ['apelido'],
       properties: {
         apelido: { type: 'string', minLength: 2, maxLength: 20 },
         avatar: { type: 'string', maxLength: 16 },
@@ -48,7 +58,12 @@ export default [
       },
     },
     async handler(c) {
-      const apelido = c.corpo.apelido.trim();
+      let apelido = (c.corpo.apelido || '').trim();
+      // Sem apelido (ou o "Eu" de versoes antigas do app): numa conta, o
+      // perfil nasce com o nome do titular; no aparelho anonimo, "Jogador".
+      if (!apelido || apelido === APELIDO_GENERICO) {
+        apelido = c.auth.tipo === 'conta' ? await apelidoDaConta(c.db, c.auth.id) : 'Jogador';
+      }
       const avatar = (c.corpo.avatar || 'musica').trim();
 
       // O apelido fica visivel no ranking geral, entao passa pela moderacao.
@@ -190,6 +205,16 @@ export default [
          returning id, apelido, avatar, instrumento, criado_em`,
         ...params
       );
+
+      // Perfil adotado com nome automatico ganha o nome do titular.
+      const automaticos = jogadores.filter((j) => APELIDOS_AUTOMATICOS.includes(j.apelido));
+      if (automaticos.length) {
+        const nome = await apelidoDaConta(c.db, contaId);
+        for (const j of automaticos) {
+          await executar(c.db, 'update jogadores set apelido = ? where id = ?', nome, j.id);
+          j.apelido = nome;
+        }
+      }
       return { vinculados: jogadores.length, jogadores };
     },
   },

@@ -68,6 +68,29 @@ const RESERVADOS = [
 ];
 
 /**
+ * Apelido inicial a partir do nome do titular da conta ("Maria da Silva" ->
+ * "Maria da Silva"; nomes longos sao cortados entre palavras, ate 20 letras).
+ * Se o resultado nao passar na moderacao, cai em "Jogador".
+ */
+export function apelidoDoNome(nome) {
+  const limpo = String(nome || '')
+    .normalize('NFC')
+    .replace(/[^\p{L}\p{N} '-]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  let apelido = '';
+  for (const palavra of limpo.split(' ')) {
+    const tentativa = apelido ? apelido + ' ' + palavra : palavra;
+    if (tentativa.length > 20) break;
+    apelido = tentativa;
+  }
+  // "Maria Aparecida da" -> "Maria Aparecida": sem particula solta no fim.
+  apelido = apelido.replace(/\s+(da|de|do|das|dos|e)$/i, '');
+  if (!apelido) apelido = limpo.slice(0, 20).trim();
+  return validarApelido(apelido) ? 'Jogador' : apelido;
+}
+
+/**
  * Valida um apelido que ficara publicamente visivel no ranking.
  * @returns {null | string} null se ok, ou a mensagem do problema.
  */
