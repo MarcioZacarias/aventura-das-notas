@@ -214,6 +214,7 @@ export default [
               and (?2 is null or p.clave = ?2)
               and (?3 is null or p.jogada_em > ?3)
          where m.turma_id = ?1
+           and (j.conta_id is null or j.conta_id not in (select id from contas where banida_em is not null))
          group by j.id, j.apelido, j.avatar
          order by melhor desc nulls last, partidas desc, j.apelido`,
         turmaId,

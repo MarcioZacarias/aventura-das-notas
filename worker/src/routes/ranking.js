@@ -26,6 +26,10 @@ const MELHORES_POR_JOGADOR = `
   from partidas
   where (?1 is null or clave = ?1)
     and (?2 is null or jogada_em > ?2)
+    -- Perfis de contas banidas nao aparecem no ranking.
+    and jogador_id not in (
+      select j.id from jogadores j join contas ct on ct.id = j.conta_id where ct.banida_em is not null
+    )
   group by jogador_id
 `;
 

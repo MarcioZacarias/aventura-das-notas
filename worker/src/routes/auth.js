@@ -185,7 +185,7 @@ export default [
 
       const conta = await primeiro(
         c.db,
-        'select id, email, nome, senha_hash from contas where email = ?',
+        'select id, email, nome, senha_hash, banida_em from contas where email = ?',
         email
       );
 
@@ -200,6 +200,8 @@ export default [
       if (!(await conferirSenha(c.corpo.senha, conta.senha_hash))) {
         throw falha(401, generico);
       }
+      // So depois da senha certa: nao revela a terceiros que a conta existe.
+      if (conta.banida_em) throw falha(403, 'Esta conta foi suspensa pela administração. Em caso de dúvida, procure o responsável pelo jogo.');
 
       await executar(c.db, 'update contas set ultimo_acesso_em = ? where id = ?', agora(), conta.id);
       const tokens = await abrirSessao(c, conta.id);

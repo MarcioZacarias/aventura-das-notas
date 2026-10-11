@@ -85,6 +85,18 @@
   .acoes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
   .check { display: flex; align-items: center; gap: 8px; font-weight: bold; }
   .check input { width: auto; }
+  .resumo { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+  .resumo div { background: #fff8e1; border-radius: 12px; padding: 8px 10px; }
+  .resumo strong { display: block; font-size: 22px; color: var(--destaque); }
+  .resumo span { font-size: 12px; color: var(--suave); }
+  .tag { font-size: 11px; font-weight: bold; padding: 2px 8px; border-radius: 999px; margin-left: 4px; white-space: nowrap; }
+  .tag.ban { background: #ffebee; color: var(--erro); }
+  .tag.adm { background: #e8f5e9; color: var(--ok); }
+  tr.banida td { opacity: 0.6; }
+  h3.sub { font-size: 15px; margin: 16px 0 6px; border-top: 1px solid #ffe0b2; padding-top: 12px; }
+  .banida-aviso { background: #ffebee; color: var(--erro); border-radius: 10px; padding: 8px 12px; font-weight: bold; }
+  .perfil-linha { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .perfil-linha .ajuda { margin: 0; }
   .sug { border: 2px solid #ffe0b2; border-radius: 12px; padding: 12px; margin-bottom: 10px; }
   .sug-topo { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--suave); }
   .sug-texto { margin: 8px 0; white-space: pre-wrap; word-break: break-word; }
@@ -142,6 +154,80 @@
         as notas vêm na ordem da melodia, com o nome, o tom e o compasso na tela.
         O nível sobe a cada 8 acertos.</p>
       <p class="msg" id="configMsg"></p>
+    </section>
+
+    <!-- Usuarios -->
+    <section class="cartao" id="blocoUsuarios">
+      <h2>👥 Usuários</h2>
+      <div class="resumo" id="resumoUsuarios"></div>
+      <div class="linha" style="margin: 10px 0;">
+        <div><input id="buscaUsuario" type="search" placeholder="Buscar por nome, e-mail ou apelido"></div>
+        <div style="flex: 0 0 150px;">
+          <select id="filtroUsuario">
+            <option value="todas">Todas</option>
+            <option value="ativas">Ativas</option>
+            <option value="banidas">Banidas</option>
+          </select>
+        </div>
+      </div>
+      <div class="tabela-rolavel">
+        <table>
+          <thead><tr><th>Nome</th><th>E-mail</th><th>Perfis</th><th>Partidas</th><th>Último acesso</th><th></th></tr></thead>
+          <tbody id="listaUsuarios"></tbody>
+        </table>
+      </div>
+      <div class="linha" style="justify-content: space-between; margin-top: 8px;">
+        <button type="button" class="secundario pequeno" id="usuariosAnteriorBtn">← Anterior</button>
+        <span class="ajuda" id="usuariosPagina"></span>
+        <button type="button" class="secundario pequeno" id="usuariosProximaBtn">Próxima →</button>
+      </div>
+      <p class="msg" id="usuariosMsg"></p>
+    </section>
+
+    <!-- Ficha da conta -->
+    <section class="cartao hidden" id="fichaConta">
+      <div class="linha" style="justify-content: space-between;">
+        <h2 style="margin: 0;" id="fichaTitulo"></h2>
+        <button type="button" class="secundario pequeno" id="fichaFecharBtn">Fechar</button>
+      </div>
+      <p class="ajuda" id="fichaInfo"></p>
+      <p class="banida-aviso hidden" id="fichaBanida"></p>
+
+      <h3 class="sub">Dados da conta</h3>
+      <div class="linha">
+        <div><label for="fichaNome">Nome do responsável</label><input id="fichaNome" type="text" maxlength="80"></div>
+        <button type="button" class="pequeno" id="fichaSalvarNomeBtn">Salvar nome</button>
+      </div>
+
+      <h3 class="sub">Perfis (jogadores)</h3>
+      <div id="fichaJogadores"></div>
+
+      <h3 class="sub">Acesso</h3>
+      <p class="ajuda" id="fichaSessoes"></p>
+      <div class="acoes">
+        <button type="button" class="secundario" id="fichaEncerrarBtn">Desconectar de todos os aparelhos</button>
+      </div>
+
+      <h3 class="sub">Banimento</h3>
+      <div id="fichaBanBloco">
+        <label for="fichaMotivo">Motivo (só para controle interno)</label>
+        <textarea id="fichaMotivo" maxlength="300" style="min-height: 50px; font-family: inherit;"></textarea>
+        <div class="acoes">
+          <button type="button" class="perigo" id="fichaBanirBtn">Banir conta</button>
+          <button type="button" class="hidden" id="fichaDesbanirBtn">Remover banimento</button>
+        </div>
+        <p class="ajuda">Conta banida não consegue entrar, é desconectada na hora e os perfis dela somem dos rankings.
+          Nada é apagado: remover o banimento devolve tudo.</p>
+      </div>
+
+      <h3 class="sub">Excluir conta</h3>
+      <p class="ajuda">Apaga a conta e tudo dela (perfis, partidas, turmas e sugestões). <strong>Não dá para desfazer.</strong>
+        Use para pedidos de exclusão de dados (LGPD).</p>
+      <div class="linha">
+        <div><input id="fichaConfirmarEmail" type="text" placeholder="Digite o e-mail da conta para confirmar"></div>
+        <button type="button" class="perigo" id="fichaExcluirBtn">Excluir definitivamente</button>
+      </div>
+      <p class="msg" id="fichaMsg"></p>
     </section>
 
     <!-- Sugestoes dos usuarios -->

@@ -33,6 +33,17 @@ export async function autenticar(req, cfg, exigeConta = false) {
   return { tipo: payload.tipo, id: payload.sub };
 }
 
+/**
+ * Conta banida perde o acesso na hora, mesmo com access token ainda valido
+ * (ele dura ate 15 min). Uma consulta por requisicao de conta.
+ */
+export async function exigirContaAtiva(c) {
+  if (!c.auth || c.auth.tipo !== 'conta') return;
+  const conta = await primeiro(c.db, 'select banida_em from contas where id = ?', c.auth.id);
+  if (!conta) throw falha(401, 'Conta nao encontrada. Entre novamente.');
+  if (conta.banida_em) throw falha(401, 'Esta conta foi suspensa pela administração. Em caso de dúvida, procure o responsável pelo jogo.');
+}
+
 /** O e-mail esta na lista de administradores (var ADMIN_EMAILS)? */
 export const ehEmailAdmin = (cfg, email) =>
   !!email && cfg.adminEmails.includes(String(email).trim().toLowerCase());

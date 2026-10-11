@@ -11,7 +11,7 @@
  */
 import { lerConfig } from './config.js';
 import { ErroHttp, falha, json, lerCorpo, validar } from './http.js';
-import { autenticar, checarLimite, exigirAdmin } from './lib/acesso.js';
+import { autenticar, checarLimite, exigirAdmin, exigirContaAtiva } from './lib/acesso.js';
 
 import rotasAuth from './routes/auth.js';
 import rotasJogadores from './routes/jogadores.js';
@@ -21,6 +21,7 @@ import rotasTurmas from './routes/turmas.js';
 import rotasDenuncias from './routes/denuncias.js';
 import rotasHinos from './routes/hinos.js';
 import rotasSugestoes from './routes/sugestoes.js';
+import rotasContasAdmin from './routes/contas-admin.js';
 
 /**
  * Cada rota e { metodo, caminho, handler } mais, opcionalmente:
@@ -45,6 +46,7 @@ const ROTAS = [
   ...rotasDenuncias,
   ...rotasHinos,
   ...rotasSugestoes,
+  ...rotasContasAdmin,
 ].map((rota) => ({
   ...rota,
   // '/v1/jogadores/:id' -> /^\/v1\/jogadores\/(?<id>[^/]+)$/
@@ -117,7 +119,10 @@ async function atender(req, env, cfg) {
   c.query = rota.query ? validar(Object.fromEntries(url.searchParams), rota.query) : {};
   c.corpo = rota.corpo ? validar(corpo ?? {}, rota.corpo) : corpo;
 
-  if (rota.auth) c.auth = await autenticar(req, cfg, rota.auth !== true);
+  if (rota.auth) {
+    c.auth = await autenticar(req, cfg, rota.auth !== true);
+    await exigirContaAtiva(c);
+  }
   if (rota.auth === 'admin') await exigirAdmin(c);
 
   const resultado = await rota.handler(c);

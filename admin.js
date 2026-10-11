@@ -58,6 +58,7 @@
     mostrar('painel', true);
     montarSelects();
     carregarConfig();
+    carregarUsuarios();
     carregarSugestoes();
     carregarHinos();
   }
@@ -330,6 +331,186 @@
     editando = null;
     await carregarHinos();
     msg(el('listaMsg'), 'Hino excluído.', 'ok');
+  });
+
+  // ------------------------------------------------------------- usuarios
+  const usuarios = { pagina: 1, aberta: null };
+  const dataBr = (iso) => (iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—');
+
+  function etiqueta(texto, classe) {
+    const t = document.createElement('span');
+    t.className = 'tag ' + classe;
+    t.textContent = texto;
+    return t;
+  }
+
+  async function carregarUsuarios() {
+    const qs = new URLSearchParams({ situacao: el('filtroUsuario').value, pagina: String(usuarios.pagina) });
+    const busca = el('buscaUsuario').value.trim();
+    if (busca) qs.set('busca', busca);
+    msg(el('usuariosMsg'), 'Carregando…');
+    const r = await Api.admin('GET', '/contas?' + qs.toString()).catch(() => null);
+    if (!r || !r.ok) {
+      msg(el('usuariosMsg'), erroDe(r, 'Não foi possível carregar os usuários.'), 'erro');
+      return;
+    }
+    const d = r.dados;
+    const res = d.resumo;
+    el('resumoUsuarios').innerHTML = '';
+    for (const [n, t] of [[res.contas, 'contas'], [res.ativas_7_dias, 'ativas em 7 dias'], [res.jogadores, 'perfis'], [res.aparelhos, 'aparelhos'], [res.banidas, 'banidas']]) {
+      const div = document.createElement('div');
+      const s = document.createElement('strong');
+      s.textContent = n;
+      const sp = document.createElement('span');
+      sp.textContent = t;
+      div.append(s, sp);
+      el('resumoUsuarios').appendChild(div);
+    }
+
+    const corpo = el('listaUsuarios');
+    corpo.innerHTML = '';
+    for (const u of d.contas) {
+      const tr = document.createElement('tr');
+      if (u.banida_em) tr.className = 'banida';
+      const tdNome = document.createElement('td');
+      tdNome.textContent = u.nome;
+      if (u.admin) tdNome.appendChild(etiqueta('admin', 'adm'));
+      if (u.banida_em) tdNome.appendChild(etiqueta('banida', 'ban'));
+      if (u.apelidos) {
+        const ap = document.createElement('div');
+        ap.className = 'claves-tag';
+        ap.textContent = u.apelidos;
+        tdNome.appendChild(ap);
+      }
+      tr.appendChild(tdNome);
+      for (const t of [u.email, String(u.jogadores), String(u.partidas), dataBr(u.ultimo_acesso_em)]) {
+        const td = document.createElement('td');
+        td.textContent = t;
+        tr.appendChild(td);
+      }
+      const td = document.createElement('td');
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'secundario pequeno';
+      b.textContent = 'Gerenciar';
+      b.addEventListener('click', () => abrirFicha(u.id));
+      td.appendChild(b);
+      tr.appendChild(td);
+      corpo.appendChild(tr);
+    }
+    const paginas = Math.max(1, Math.ceil(d.total / d.por_pagina));
+    el('usuariosPagina').textContent = d.total + ' conta(s) · página ' + usuarios.pagina + ' de ' + paginas;
+    el('usuariosAnteriorBtn').disabled = usuarios.pagina <= 1;
+    el('usuariosProximaBtn').disabled = usuarios.pagina >= paginas;
+    msg(el('usuariosMsg'), d.contas.length ? '' : 'Nenhuma conta encontrada.');
+  }
+
+  let buscaTimer = null;
+  el('buscaUsuario').addEventListener('input', () => {
+    clearTimeout(buscaTimer);
+    buscaTimer = setTimeout(() => { usuarios.pagina = 1; carregarUsuarios(); }, 350);
+  });
+  el('filtroUsuario').addEventListener('change', () => { usuarios.pagina = 1; carregarUsuarios(); });
+  el('usuariosAnteriorBtn').addEventListener('click', () => { usuarios.pagina--; carregarUsuarios(); });
+  el('usuariosProximaBtn').addEventListener('click', () => { usuarios.pagina++; carregarUsuarios(); });
+
+  async function abrirFicha(id) {
+    usuarios.aberta = id;
+    msg(el('fichaMsg'), 'Carregando…');
+    mostrar('fichaConta', true);
+    el('fichaConta').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const r = await Api.admin('GET', '/contas/' + id).catch(() => null);
+    if (!r || !r.ok) {
+      msg(el('fichaMsg'), erroDe(r, 'Não foi possível abrir a conta.'), 'erro');
+      return;
+    }
+    const { conta, jogadores, sessoes_abertas, turmas, sugestoes } = r.dados;
+    el('fichaTitulo').textContent = conta.nome + (conta.admin ? ' (administrador)' : '');
+    el('fichaInfo').textContent = conta.email + ' · conta criada em ' + dataBr(conta.criado_em) +
+      ' · último acesso ' + dataBr(conta.ultimo_acesso_em) + ' · ' + turmas.length + ' turma(s) · ' + sugestoes + ' sugestão(ões)';
+    el('fichaNome').value = conta.nome;
+    el('fichaConfirmarEmail').value = '';
+    el('fichaSessoes').textContent = sessoes_abertas
+      ? 'Conectada em ' + sessoes_abertas + ' aparelho(s)/navegador(es).'
+      : 'Nenhuma sessão aberta no momento.';
+
+    const banida = !!conta.banida_em;
+    mostrar('fichaBanida', banida);
+    el('fichaBanida').textContent = banida
+      ? '🚫 Conta banida em ' + dataBr(conta.banida_em) + (conta.ban_motivo ? ' — motivo: ' + conta.ban_motivo : '')
+      : '';
+    el('fichaMotivo').value = conta.ban_motivo || '';
+    mostrar('fichaBanirBtn', !banida && !conta.admin);
+    mostrar('fichaDesbanirBtn', banida);
+    el('fichaExcluirBtn').disabled = conta.admin;
+    el('fichaBanBloco').style.opacity = conta.admin ? 0.5 : 1;
+
+    const alvo = el('fichaJogadores');
+    alvo.innerHTML = '';
+    if (!jogadores.length) alvo.innerHTML = '<p class="ajuda">Nenhum perfil.</p>';
+    for (const jg of jogadores) {
+      const linha = document.createElement('div');
+      linha.className = 'perfil-linha';
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.maxLength = 20;
+      inp.value = jg.apelido;
+      const info = document.createElement('span');
+      info.className = 'ajuda';
+      info.textContent = (jg.instrumento || 'sem instrumento') + ' · ' + jg.partidas + ' partida(s) · recorde ' + (jg.recorde ?? 0);
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pequeno';
+      b.textContent = 'Renomear';
+      b.addEventListener('click', async () => {
+        const rr = await Api.admin('PATCH', '/jogadores/' + jg.id, { apelido: inp.value.trim() }).catch(() => null);
+        msg(el('fichaMsg'), rr && rr.ok ? 'Apelido alterado.' : erroDe(rr, 'Não foi possível alterar.'), rr && rr.ok ? 'ok' : 'erro');
+        if (rr && rr.ok) carregarUsuarios();
+      });
+      linha.append(inp, info, b);
+      alvo.appendChild(linha);
+    }
+    msg(el('fichaMsg'), '');
+  }
+
+  async function acaoConta(metodo, sufixo, corpo, sucesso) {
+    const id = usuarios.aberta;
+    if (!id) return false;
+    const r = await Api.admin(metodo, '/contas/' + id + sufixo, corpo).catch(() => null);
+    if (!r || !r.ok) {
+      msg(el('fichaMsg'), erroDe(r, 'Não foi possível concluir.'), 'erro');
+      return false;
+    }
+    await carregarUsuarios();
+    if (metodo !== 'DELETE') await abrirFicha(id);
+    msg(el('fichaMsg'), sucesso(r.dados), 'ok');
+    return true;
+  }
+
+  el('fichaFecharBtn').addEventListener('click', () => { mostrar('fichaConta', false); usuarios.aberta = null; });
+  el('fichaSalvarNomeBtn').addEventListener('click', () =>
+    acaoConta('PATCH', '', { nome: el('fichaNome').value.trim() }, () => 'Nome salvo.'));
+  el('fichaEncerrarBtn').addEventListener('click', () =>
+    acaoConta('POST', '/encerrar-sessoes', undefined, (d) => 'Desconectada de ' + d.encerradas + ' sessão(ões).'));
+  el('fichaBanirBtn').addEventListener('click', () => {
+    if (!confirm('Banir esta conta? Ela será desconectada e não conseguirá entrar.')) return;
+    acaoConta('PATCH', '', { banida: true, motivo: el('fichaMotivo').value }, () => 'Conta banida.');
+  });
+  el('fichaDesbanirBtn').addEventListener('click', () =>
+    acaoConta('PATCH', '', { banida: false }, () => 'Banimento removido. A pessoa já pode entrar de novo.'));
+  el('fichaExcluirBtn').addEventListener('click', async () => {
+    const email = el('fichaConfirmarEmail').value.trim();
+    if (!email) {
+      msg(el('fichaMsg'), 'Digite o e-mail da conta para confirmar.', 'erro');
+      return;
+    }
+    if (!confirm('Excluir definitivamente esta conta e todos os dados dela?')) return;
+    const ok = await acaoConta('DELETE', '', { confirmar_email: email }, () => 'Conta excluída.');
+    if (ok) {
+      mostrar('fichaConta', false);
+      usuarios.aberta = null;
+      msg(el('usuariosMsg'), 'Conta excluída.', 'ok');
+    }
   });
 
   // ------------------------------------------------------------ sugestoes
