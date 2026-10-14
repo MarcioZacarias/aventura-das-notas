@@ -30,6 +30,10 @@ export function lerConfig(env) {
     rankingMostraApelidos: String(env.RANKING_MOSTRA_APELIDOS) !== 'false',
     rankingTamanhoTopo: Math.min(50, Number(env.RANKING_TAMANHO_TOPO) || 10),
 
+    // Cadastro obrigatorio: recusa a identidade anonima de aparelho. Ligado em
+    // producao (wrangler.jsonc); desligado na suite local, que testa os dois modos.
+    exigirConta: String(env.EXIGIR_CONTA) === 'true',
+
     // So para a suite de testes local (.dev.vars). Nunca em producao.
     limitesDesligados: String(env.RATE_LIMIT_DESLIGADO) === 'true',
 

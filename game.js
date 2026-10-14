@@ -714,7 +714,16 @@ function flashFeedback(type, text) {
 }
 
 // ===== LIFECYCLE =====
+/**
+ * Login obrigatorio sem sessao: nenhuma partida comeca, mesmo que alguem
+ * acione uma clave por baixo do portao (ex.: pelo console do navegador).
+ */
+function semCadastro() {
+  return typeof Api !== 'undefined' && Api.estado && Api.estado.ligado && Api.estado.exigeLogin && !Api.temSessao();
+}
+
 function startGame(clefKey) {
+  if (semCadastro()) return;
   if (clefKey && CLEFS[clefKey]) state.currentClef = clefKey;
   document.getElementById('startScreen').classList.add('hidden');
   document.getElementById('endScreen').classList.add('hidden');
@@ -915,6 +924,7 @@ if (temInstrumentos) {
 document.querySelectorAll('.clef-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     getAudioCtx();
+    if (semCadastro()) return;
     const clave = btn.dataset.clef;
     // Quiz do metodo (MSA) antes de cada partida; sem quiz.js, joga direto.
     if (typeof Quiz !== 'undefined') Quiz.abrir(() => startGame(clave));

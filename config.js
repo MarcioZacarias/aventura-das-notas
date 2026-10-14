@@ -25,6 +25,6 @@
  *   portao simplesmente nao existe.
  */
 window.AVENTURA_CONFIG = {
-  apiBase: '',
+  apiBase: 'https://www.aventuradasnotas.com.br',
   exigirLogin: true,
 };

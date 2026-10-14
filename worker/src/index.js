@@ -119,8 +119,17 @@ async function atender(req, env, cfg) {
   c.query = rota.query ? validar(Object.fromEntries(url.searchParams), rota.query) : {};
   c.corpo = rota.corpo ? validar(corpo ?? {}, rota.corpo) : corpo;
 
+  // Cadastro obrigatorio (EXIGIR_CONTA): sem conta nao se cria nem se usa
+  // identidade anonima de aparelho. O portao do app nao basta sozinho: quem
+  // chamasse a API direto jogaria sem cadastro.
+  if (cfg.exigirConta && rota.caminho.startsWith('/v1/auth/dispositivo/')) {
+    throw falha(403, 'Para jogar é preciso entrar com a conta do responsável.');
+  }
   if (rota.auth) {
     c.auth = await autenticar(req, cfg, rota.auth !== true);
+    if (cfg.exigirConta && c.auth.tipo !== 'conta') {
+      throw falha(401, 'Para jogar é preciso entrar com a conta do responsável.');
+    }
     await exigirContaAtiva(c);
   }
   if (rota.auth === 'admin') await exigirAdmin(c);
